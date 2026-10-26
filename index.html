@@ -80,16 +80,24 @@
       <!-- Main Navigation Tabs -->
       <nav class="flex flex-wrap items-center gap-1.5 bg-slate-950/80 p-1 rounded-xl border border-slate-800" id="mainNavTabs">
         <button type="button" id="navBtnPortfolio" onclick="switchMainView('portfolio')" class="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all bg-indigo-600 text-white shadow">
-          📊 持股倉與鎖單股總覽
+          📊 持股倉與鎖單股
+        </button>
+        <button type="button" id="navBtnScreener" onclick="switchMainView('screener')" class="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800 flex items-center gap-1">
+          <span>🎯 智慧選股篩選器</span>
+          <span class="px-1.5 py-0.2 text-[10px] rounded bg-rose-500/30 text-rose-300 font-bold">HOT</span>
         </button>
         <button type="button" id="navBtnChips" onclick="switchMainView('chips')" class="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800">
-          🎯 法人/大戶/董監/CB籌碼雷達
+          📡 籌碼/CB雷達
         </button>
         <button type="button" id="navBtnFinancials" onclick="switchMainView('financials')" class="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800">
-          📈 營收與每季財報深度剖析
+          📈 營收財報
+        </button>
+        <button type="button" id="navBtnJournal" onclick="switchMainView('journal')" class="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800 flex items-center gap-1">
+          <span>📔 交易日誌與覆盤</span>
+          <span id="navJournalWinBadge" class="px-1.5 py-0.2 text-[10px] rounded bg-emerald-500/30 text-emerald-300 font-bold">73%勝率</span>
         </button>
         <button type="button" id="navBtnSync" onclick="switchMainView('sync')" class="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800">
-          ☁️ Cloudflare 同步引擎與指南
+          ☁️ Cloudflare 同步
         </button>
       </nav>
 
@@ -241,6 +249,128 @@
               </tr>
             </thead>
             <tbody id="portfolioTableBody" class="divide-y divide-slate-800/70 text-xs"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- VIEW: SMART SCREENER (🎯 智慧選股篩選器)                  -->
+    <!-- ========================================================= -->
+    <section id="viewScreener" class="space-y-5 hidden">
+      <!-- Strategy Header Banner & Quick Filter Pills -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xl">🎯</span>
+              <h2 class="text-lg font-bold text-white">智慧選股篩選器（資本利得與潛在飆股雷達）</h2>
+              <span class="px-2 py-0.5 text-xs font-semibold rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">多因子量化模型</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">
+              自動交叉比對「可轉債 CB 溢價異動」、「400/1000張大戶同增籌碼」、「月營收與毛利率雙升」、「董監事內部人佈局」，一鍵轉入鎖單觀察或持股倉！
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span id="screenerMatchedCountBadge" class="px-3 py-1.5 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-xs font-bold text-indigo-300">符合策略：16 檔</span>
+            <button type="button" onclick="resetScreenerFilters()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition">重設條件</button>
+          </div>
+        </div>
+
+        <!-- Strategy Preset Pills -->
+        <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-800/80">
+          <span class="text-xs font-semibold text-slate-400 mr-1">精選策略：</span>
+          <button type="button" id="stratPillAll" onclick="setScreenerStrategy('ALL')" class="px-3 py-1.5 rounded-xl text-xs font-semibold transition bg-indigo-600 text-white shadow">
+            🌟 全部策略標的
+          </button>
+          <button type="button" id="stratPillCb" onclick="setScreenerStrategy('CB_MOMENTUM')" class="px-3 py-1.5 rounded-xl text-xs font-semibold transition bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700">
+            🔥 CB 轉換異動放量池 (主力拉抬前哨)
+          </button>
+          <button type="button" id="stratPillHolders" onclick="setScreenerStrategy('DUAL_HOLDERS')" class="px-3 py-1.5 rounded-xl text-xs font-semibold transition bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700">
+            🚀 400/1000 大戶同增 (籌碼極度集中)
+          </button>
+          <button type="button" id="stratPillMargin" onclick="setScreenerStrategy('TRIPLE_MARGIN')" class="px-3 py-1.5 rounded-xl text-xs font-semibold transition bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700">
+            📈 營收三率三升突破 (基本面獲利爆發)
+          </button>
+          <button type="button" id="stratPillInsider" onclick="setScreenerStrategy('INSIDER_ACCUM')" class="px-3 py-1.5 rounded-xl text-xs font-semibold transition bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700">
+            👑 董監事內部人暴買 (大股東利害一致)
+          </button>
+        </div>
+
+        <!-- Multi-factor Filter Toolbar -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-2">
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-400 mb-1">本益比 (P/E)</label>
+            <select id="screenerPeFilter" onchange="filterScreener()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+              <option value="ALL">全部本益比</option>
+              <option value="PE_LT_15">低估值 (P/E &lt; 15x)</option>
+              <option value="PE_LT_20">合理偏低 (P/E &lt; 20x)</option>
+              <option value="PE_LT_25">成長型 (P/E &lt; 25x)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-400 mb-1">400張大戶持股比</label>
+            <select id="screenerHolderFilter" onchange="filterScreener()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+              <option value="ALL">全部級距</option>
+              <option value="HOLDER_GT_60">&gt; 60% (主力掌權)</option>
+              <option value="HOLDER_GT_70">&gt; 70% (籌碼高度沉澱)</option>
+              <option value="HOLDER_GT_75">&gt; 75% (籌碼極致鎖死)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-400 mb-1">月營收年增 (YoY)</label>
+            <select id="screenerRevFilter" onchange="filterScreener()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+              <option value="ALL">全部營收</option>
+              <option value="REV_GT_15">YoY &gt; 15% (穩定成長)</option>
+              <option value="REV_GT_25">YoY &gt; 25% (強勁爆發)</option>
+              <option value="REV_GT_40">YoY &gt; 40% (翻倍飆股體質)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-400 mb-1">CB 可轉債狀態</label>
+            <select id="screenerCbFilter" onchange="filterScreener()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+              <option value="ALL">全部標的</option>
+              <option value="HAS_CB">僅看發行可轉債</option>
+              <option value="CB_ACTIVE">CB 已轉 &gt; 15% 或 溢價 &lt; 10%</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-400 mb-1">排序方式</label>
+            <select id="screenerSortBy" onchange="filterScreener()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+              <option value="SCORE_DESC">AI 量化綜合評分 (高至低)</option>
+              <option value="CB_CONV_DESC">CB 轉換爆發力 (高至低)</option>
+              <option value="HOLDER_DIFF_DESC">400張週增幅 (大至小)</option>
+              <option value="REV_YOY_DESC">月營收 YoY 增速 (高至低)</option>
+              <option value="PRICE_CHG_DESC">當日漲幅 (強至弱)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-400 mb-1">關鍵字 / 產業題材</label>
+            <input type="text" id="screenerSearchInput" oninput="filterScreener()" placeholder="搜尋代號/名稱/AI/水冷/CPO..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Screener Results Table -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+        <div class="overflow-x-auto custom-scrollbar">
+          <table class="w-full text-left border-collapse min-w-[1380px]">
+            <thead>
+              <tr class="bg-slate-950/90 border-b border-slate-800 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                <th class="py-3 px-3">標的代號 / 產業 / 評分</th>
+                <th class="py-3 px-2.5 text-right">最新市價 / 當日漲跌</th>
+                <th class="py-3 px-2.5 text-center">符合策略標籤</th>
+                <th class="py-3 px-2.5 text-center bg-indigo-950/20">400張大戶 / 週增減</th>
+                <th class="py-3 px-2.5 text-center bg-indigo-950/20">1000張大戶 / 散戶增減</th>
+                <th class="py-3 px-2.5 text-center">董監持股 / 月增減</th>
+                <th class="py-3 px-2.5 text-center">CB 可轉債動能<br><span class="text-[10px] font-normal text-slate-500">代號 / 轉換率 / 溢價率</span></th>
+                <th class="py-3 px-2.5 text-right">營收成長 &amp; 獲利三率<br><span class="text-[10px] font-normal text-slate-500">YoY / EPS / 毛利</span></th>
+                <th class="py-3 px-2.5 text-right">本益比 / 殖利率</th>
+                <th class="py-3 px-3 w-72">💡 潛力爆發題材與核心催化劑 (Catalyst)</th>
+                <th class="py-3 px-3 text-center">轉入動作</th>
+              </tr>
+            </thead>
+            <tbody id="screenerTableBody" class="divide-y divide-slate-800/70 text-xs"></tbody>
           </table>
         </div>
       </div>
@@ -455,6 +585,145 @@
           </button>
         </div>
         <textarea id="finViewNoteTextarea" rows="3" placeholder="在此輸入法說會重點、CB轉換價位觀察、大戶籌碼異動心得、停利停損條件..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"></textarea>
+      </div>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- VIEW: TRADING JOURNAL & WIN-RATE (📔 交易日誌與覆盤勝率)   -->
+    <!-- ========================================================= -->
+    <section id="viewJournal" class="space-y-5 hidden">
+      <!-- 5 KPI Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4">
+          <div class="text-xs text-slate-400 flex items-center justify-between">
+            <span>累計平倉勝率 (Win Rate)</span>
+            <span class="text-[11px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold">已平倉單</span>
+          </div>
+          <div id="journalWinRateVal" class="text-2xl font-black text-emerald-400 mt-1.5">0.0%</div>
+          <div id="journalWinRateSub" class="text-xs text-slate-400 mt-1">0 勝 / 0 敗 (共 0 筆平倉)</div>
+        </div>
+
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4">
+          <div class="text-xs text-slate-400 flex items-center justify-between">
+            <span>累計已實現淨損益</span>
+            <span class="text-[11px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold">淨獲利</span>
+          </div>
+          <div id="journalTotalPnlVal" class="text-2xl font-black tw-up mt-1.5">+$0</div>
+          <div id="journalTotalPnlSub" class="text-xs text-slate-400 mt-1">已扣除券商手續費與證交稅</div>
+        </div>
+
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4">
+          <div class="text-xs text-slate-400 flex items-center justify-between">
+            <span>賺賠比 (Payoff Ratio)</span>
+            <span class="text-[11px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-bold">盈虧質量</span>
+          </div>
+          <div id="journalPayoffVal" class="text-2xl font-black text-cyan-400 mt-1.5">0.00</div>
+          <div id="journalPayoffSub" class="text-xs text-slate-400 mt-1">平均獲利 $0 / 虧損 $0</div>
+        </div>
+
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4">
+          <div class="text-xs text-slate-400 flex items-center justify-between">
+            <span>最佳獲利策略標籤</span>
+            <span class="text-[11px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold">高勝率</span>
+          </div>
+          <div id="journalBestStratVal" class="text-base font-bold text-amber-300 mt-2 truncate">無</div>
+          <div id="journalBestStratSub" class="text-xs text-slate-400 mt-1">累積統計中</div>
+        </div>
+
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4">
+          <div class="text-xs text-slate-400 flex items-center justify-between">
+            <span>紀律執行平均評分</span>
+            <span class="text-[11px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 font-bold">交易紀律</span>
+          </div>
+          <div id="journalDisciplineVal" class="text-2xl font-black text-purple-300 mt-1.5">5.0 <span class="text-sm font-normal text-slate-400">/ 5.0</span></div>
+          <div id="journalDisciplineSub" class="text-xs text-slate-400 mt-1">⭐⭐⭐⭐⭐ 高度遵守進出原則</div>
+        </div>
+      </div>
+
+      <!-- Strategy Chart & Action Toolbar -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <!-- Strategy Performance Chart (7 cols) -->
+        <div class="lg:col-span-7 bg-slate-900/90 border border-slate-800 rounded-2xl p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-white">📊 策略分類績效與已實現淨損益貢獻度</h3>
+              <p class="text-xs text-slate-400">分析不同選股策略帶來的勝率與總報酬，持續優化個人獲利方程式</p>
+            </div>
+            <span class="px-2 py-0.5 text-xs rounded bg-indigo-500/20 text-indigo-300 font-medium">策略覆盤</span>
+          </div>
+          <div class="relative h-64">
+            <canvas id="journalStrategyChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Discipline & Insight Summary (5 cols) -->
+        <div class="lg:col-span-5 bg-slate-900/90 border border-slate-800 rounded-2xl p-4 space-y-3 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-sm font-bold text-white">💡 個人交易心法與覆盤總結</h3>
+              <span class="px-2 py-0.5 text-xs rounded bg-emerald-500/20 text-emerald-300 font-medium">紀律原則</span>
+            </div>
+            <div class="space-y-2 text-xs text-slate-300 leading-relaxed bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+              <p>• <strong class="text-emerald-400">CB 異動與低溢價策略</strong> 勝率最高，於轉換溢價率 &lt; 5% 且大戶同增時進場，下檔有債券面額保護，上檔具飆股爆發力。</p>
+              <p>• <strong class="text-indigo-400">大戶雙增搭配營收新高</strong> 為波段主升段核心，嚴格執行跌破 20MA 或大戶連續兩週減碼時移動停利。</p>
+              <p>• <strong class="text-rose-400">停損紀律</strong>：進場前設定 7%~8% 硬停損，嚴禁凹單或盲目攤平，確保單筆虧損壓制在總資金 1.5% 以內。</p>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-800">
+            <button type="button" onclick="openManualTradeModal()" class="flex-1 px-3.5 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-sm">
+              ＋ 手動新增覆盤紀錄
+            </button>
+            <button type="button" onclick="exportJournalCsv()" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">
+              📤 匯出日誌 CSV
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Journal Records Filter & Table -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-xl space-y-3 p-4">
+        <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-xs font-semibold text-slate-400">篩選紀錄：</span>
+            <select id="journalStrategyFilter" onchange="renderJournalTable()" class="bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+              <option value="ALL">全部策略分類</option>
+              <option value="CB低溢價/異動">CB低溢價/異動</option>
+              <option value="400/1000大戶雙增">400/1000大戶雙增</option>
+              <option value="營收三率三升">營收三率三升</option>
+              <option value="突破整理區間">突破整理區間</option>
+              <option value="董監大買">董監大買</option>
+            </select>
+            <select id="journalOutcomeFilter" onchange="renderJournalTable()" class="bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+              <option value="ALL">全部損益結果</option>
+              <option value="WIN">僅看獲利單 (Win)</option>
+              <option value="LOSS">僅看虧損單 (Loss)</option>
+            </select>
+          </div>
+          <div class="text-xs text-slate-400">
+            點擊「備註與反思」即可編輯覆盤心得；在持股倉點擊「💰 平倉覆盤」即可將持股結清存入日誌。
+          </div>
+        </div>
+
+        <div class="overflow-x-auto custom-scrollbar">
+          <table class="w-full text-left border-collapse min-w-[1300px]">
+            <thead>
+              <tr class="bg-slate-950/90 border-b border-slate-800 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                <th class="py-3 px-3">標的代號 / 名稱</th>
+                <th class="py-3 px-2.5 text-right">買進日期 / 買價</th>
+                <th class="py-3 px-2.5 text-right">平倉日期 / 賣價</th>
+                <th class="py-3 px-2.5 text-right">平倉股數 / 天數</th>
+                <th class="py-3 px-2.5 text-right">已實現淨損益 ($ / %)</th>
+                <th class="py-3 px-2.5 text-center">進場策略標籤</th>
+                <th class="py-3 px-2.5 text-center">出場原因標籤</th>
+                <th class="py-3 px-2.5 text-center">紀律評分</th>
+                <th class="py-3 px-3 w-80">📔 覆盤心得與反省 (點擊編輯)</th>
+                <th class="py-3 px-2 text-center">操作</th>
+              </tr>
+            </thead>
+            <tbody id="journalTableBody" class="divide-y divide-slate-800/70 text-xs"></tbody>
+          </table>
+        </div>
       </div>
     </section>
 
@@ -727,6 +996,215 @@
       <div class="flex justify-end gap-2">
         <button type="button" onclick="closeQuickNoteModal()" class="px-3.5 py-1.5 rounded-xl text-xs bg-slate-800 text-slate-300">取消</button>
         <button type="button" onclick="commitQuickNote()" class="px-4 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white">💾 儲存備註</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL 4: CLOSE POSITION & LOG TRADE MODAL  -->
+  <!-- ========================================== -->
+  <div id="closeTradeModal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-emerald-500/50 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div>
+          <h3 id="closeTradeModalTitle" class="text-base font-bold text-white flex items-center gap-2">
+            <span>💰 持股平倉覆盤結算</span>
+            <span id="closeTradeStockBadge" class="px-2 py-0.5 text-xs rounded bg-emerald-500/20 text-emerald-300 font-bold">2383 台光電</span>
+          </h3>
+          <p class="text-xs text-slate-400 mt-0.5">紀錄實質已實現損益、進出場原因與紀律星級，自動納入勝率覆盤模型。</p>
+        </div>
+        <button type="button" onclick="closeCloseTradeModal()" class="text-slate-400 hover:text-white text-sm px-2 py-1 rounded-lg bg-slate-800">✕</button>
+      </div>
+
+      <input type="hidden" id="closeTradeStockId" />
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+        <div>
+          <label class="block text-slate-400 mb-1">買進日期</label>
+          <input type="date" id="closeTradeEntryDate" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">買進均價 (元)</label>
+          <input type="number" id="closeTradeEntryPrice" step="0.1" oninput="updateCloseTradePreview()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">平倉股數 (1張=1000股)</label>
+          <input type="number" id="closeTradeShares" step="100" oninput="updateCloseTradePreview()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+        <div>
+          <label class="block text-slate-400 mb-1">平倉賣出日期</label>
+          <input type="date" id="closeTradeExitDate" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">平倉賣出成交價 (元)</label>
+          <input type="number" id="closeTradeExitPrice" step="0.1" oninput="updateCloseTradePreview()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+        </div>
+      </div>
+
+      <!-- Real-time P&L Preview Banner -->
+      <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-slate-400">總投入成本 (含買進手續費)：</span>
+          <span id="closePreviewCost" class="text-slate-200 font-semibold">$0</span>
+        </div>
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-slate-400">總賣出金額 (已扣手續費與證交稅)：</span>
+          <span id="closePreviewRevenue" class="text-slate-200 font-semibold">$0</span>
+        </div>
+        <div class="flex items-center justify-between text-xs pt-1.5 border-t border-slate-800">
+          <span class="text-slate-300 font-bold">預估已實現淨損益 (Net P&L)：</span>
+          <span id="closePreviewNetPnl" class="text-base font-black tw-up">+$0 (+0.00%)</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+        <div>
+          <label class="block text-slate-400 mb-1">進場主要策略依據 *</label>
+          <select id="closeTradeStrategy" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white">
+            <option value="CB低溢價/異動">🔥 CB低溢價/異動 (下檔保護+主力轉換)</option>
+            <option value="400/1000大戶雙增">🚀 400/1000大戶雙增 (籌碼極致沉澱)</option>
+            <option value="營收三率三升">📈 營收三率三升 (基本面獲利創高)</option>
+            <option value="突破整理區間">⚡ 突破整理區間 (技術型態動能)</option>
+            <option value="董監大買">👑 董監事內部人大買 (跟單大股東)</option>
+            <option value="自選策略">🎯 其他個人量化策略</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">出場原因與停利/停損機制 *</label>
+          <select id="closeTradeExitReason" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white">
+            <option value="達目標價停利">🎯 達預設目標價完美停利</option>
+            <option value="移動停利波段結清">📈 跌破關鍵均線移動停利波段結清</option>
+            <option value="破移動均線/停損">🛡️ 觸發停損條件 (嚴守紀律停損)</option>
+            <option value="基本面/營收反轉">⚠️ 營收或籌碼轉弱提早撤出</option>
+            <option value="CB換股轉移">🔄 轉換至更具性價比的潛力飆股</option>
+            <option value="資金調配">💼 整體持倉資金控管調配</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="text-xs">
+        <label class="block text-slate-400 mb-1">交易紀律與執行力評分 (1 ~ 5 星) *</label>
+        <select id="closeTradeDiscipline" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white">
+          <option value="5">⭐⭐⭐⭐⭐ 5星：完全遵守進出場計畫，絕無凹單</option>
+          <option value="4">⭐⭐⭐⭐ 4星：執行良好，停利出場略有遲疑但總體符合原則</option>
+          <option value="3">⭐⭐⭐ 3星：部分受市場情緒干擾，提早出場或未按規劃加碼</option>
+          <option value="2">⭐⭐ 2星：違背停損或停利規則，未嚴格控管風險</option>
+          <option value="1">⭐ 1星：情緒性追高殺低，嚴重違背交易系統</option>
+        </select>
+      </div>
+
+      <div class="text-xs">
+        <label class="block text-slate-300 font-semibold mb-1">📔 覆盤心得與反省 (必填思考：本次操作學到了什麼？下次如何做得更好？)</label>
+        <textarea id="closeTradeNotes" rows="3" placeholder="例如：在CB轉換率突破40%時抱緊波段，沿著10MA移動停利大賺28%；下次注意在第一根爆量長黑時先減碼一半鎖住利潤..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-emerald-500"></textarea>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+        <button type="button" onclick="closeCloseTradeModal()" class="px-4 py-2 rounded-xl text-xs bg-slate-800 hover:bg-slate-700 text-slate-300">取消</button>
+        <button type="button" onclick="commitCloseTrade()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20">
+          ✅ 確認平倉並存入交易日誌
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL 5: MANUAL TRADE RECORD MODAL         -->
+  <!-- ========================================== -->
+  <div id="manualTradeModal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-indigo-500/50 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 id="manualTradeModalTitle" class="text-base font-bold text-white">＋ 手動新增 / 編輯交易覆盤紀錄</h3>
+        <button type="button" onclick="closeManualTradeModal()" class="text-slate-400 hover:text-white text-sm px-2 py-1 rounded-lg bg-slate-800">✕</button>
+      </div>
+
+      <input type="hidden" id="manualTradeId" />
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+        <div>
+          <label class="block text-slate-400 mb-1">股票代號 *</label>
+          <input type="text" id="manualTradeStockId" placeholder="例如：2383" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">股票名稱 *</label>
+          <input type="text" id="manualTradeStockName" placeholder="例如：台光電" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+        <div>
+          <label class="block text-slate-400 mb-1">買進日期 *</label>
+          <input type="date" id="manualTradeEntryDate" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">買進價格 (元) *</label>
+          <input type="number" id="manualTradeEntryPrice" step="0.1" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">交易股數 *</label>
+          <input type="number" id="manualTradeShares" step="100" value="1000" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+        <div>
+          <label class="block text-slate-400 mb-1">賣出日期 *</label>
+          <input type="date" id="manualTradeExitDate" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">賣出成交價 (元) *</label>
+          <input type="number" id="manualTradeExitPrice" step="0.1" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+        <div>
+          <label class="block text-slate-400 mb-1">進場策略標籤</label>
+          <select id="manualTradeStrategy" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white">
+            <option value="CB低溢價/異動">CB低溢價/異動</option>
+            <option value="400/1000大戶雙增">400/1000大戶雙增</option>
+            <option value="營收三率三升">營收三率三升</option>
+            <option value="突破整理區間">突破整理區間</option>
+            <option value="董監大買">董監大買</option>
+            <option value="自選策略">自選策略</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">出場原因標籤</label>
+          <select id="manualTradeExitReason" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white">
+            <option value="達目標價停利">達目標價停利</option>
+            <option value="移動停利波段結清">移動停利波段結清</option>
+            <option value="破移動均線/停損">破移動均線/停損</option>
+            <option value="基本面/營收反轉">基本面/營收反轉</option>
+            <option value="CB換股轉移">CB換股轉移</option>
+            <option value="資金調配">資金調配</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="text-xs">
+        <label class="block text-slate-400 mb-1">紀律執行評分</label>
+        <select id="manualTradeDiscipline" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white">
+          <option value="5">⭐⭐⭐⭐⭐ 5星：完全遵守紀律</option>
+          <option value="4">⭐⭐⭐⭐ 4星：良好執行</option>
+          <option value="3">⭐⭐⭐ 3星：部分猶豫</option>
+          <option value="2">⭐⭐ 2星：違反規則</option>
+          <option value="1">⭐ 1星：情緒性失誤</option>
+        </select>
+      </div>
+
+      <div class="text-xs">
+        <label class="block text-slate-300 font-semibold mb-1">📔 覆盤心得與檢討筆記</label>
+        <textarea id="manualTradeNotes" rows="3" placeholder="輸入此筆交易的獲利心法或虧損反思..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-indigo-500"></textarea>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+        <button type="button" onclick="closeManualTradeModal()" class="px-4 py-2 rounded-xl text-xs bg-slate-800 hover:bg-slate-700 text-slate-300">取消</button>
+        <button type="button" onclick="commitManualTrade()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20">
+          💾 儲存覆盤紀錄
+        </button>
       </div>
     </div>
   </div>
@@ -1125,9 +1603,241 @@
     ];
 
     // =========================================================================
+    // SMART SCREENER CANDIDATE DATABASE (16 High-Upside Stocks)
+    // =========================================================================
+    const SCREENER_DATABASE = [
+      {
+        id: '2383', name: '台光電', market: '上市', industry: '銅箔基板 / AI CCL',
+        price: 618.0, changePct: 3.87, pe: 19.8, forwardPe: 16.5, pb: 5.8, yieldPct: 3.1,
+        holder400Pct: 79.42, holder400Diff: 1.18, holder1000Pct: 68.15, holder1000Diff: 0.94,
+        shareholdersDiff: -1120, insiderPct: 18.65, insiderMonthlyDiff: 320,
+        cbCode: '23835 台光電五', cbPrice: 134.5, cbConvPrice: 486.2, cbPremiumPct: 5.42, cbConvertedPct: 41.8, cbMonthlyChangePct: 12.4,
+        revLatest: 64.8, revMoM: 6.4, revYoY: 38.2, epsLatestQ: 8.42, grossMargin: 28.9, opMargin: 19.8,
+        score: 96, strategies: ['CB_MOMENTUM', 'DUAL_HOLDERS', 'TRIPLE_MARGIN', 'INSIDER_ACCUM'],
+        tags: ['🔥 CB異動放量', '🚀 400/1000雙增', '📈 營收三率升'],
+        catalyst: '台光電五(23835)近月轉換激增12.4%，大戶持股逼近80%；800G交換器與AI伺服器M8 CCL需求旺盛。'
+      },
+      {
+        id: '3017', name: '奇鋐', market: '上市', industry: '散熱模組 / 水冷系統',
+        price: 682.0, changePct: 2.56, pe: 24.2, forwardPe: 19.4, pb: 6.4, yieldPct: 2.4,
+        holder400Pct: 74.15, holder400Diff: 0.86, holder1000Pct: 62.40, holder1000Diff: 0.72,
+        shareholdersDiff: -680, insiderPct: 16.40, insiderMonthlyDiff: 150,
+        cbCode: '30175 奇鋐五', cbPrice: 128.0, cbConvPrice: 558.0, cbPremiumPct: 4.71, cbConvertedPct: 29.5, cbMonthlyChangePct: 6.8,
+        revLatest: 71.5, revMoM: 5.2, revYoY: 42.6, epsLatestQ: 6.95, grossMargin: 24.5, opMargin: 16.2,
+        score: 95, strategies: ['CB_MOMENTUM', 'DUAL_HOLDERS', 'TRIPLE_MARGIN', 'INSIDER_ACCUM'],
+        tags: ['🔥 CB異動放量', '🚀 400/1000雙增', '📈 營收三率升'],
+        catalyst: 'GB200水冷板(Cold Plate)與分歧管訂單爆發，9月營收衝破71億歷史新高，奇鋐五轉換加速。'
+      },
+      {
+        id: '3324', name: '雙鴻', market: '上櫃', industry: '散熱解熱 / 液冷歧管',
+        price: 712.0, changePct: 3.49, pe: 22.5, forwardPe: 18.2, pb: 5.9, yieldPct: 2.1,
+        holder400Pct: 58.60, holder400Diff: 1.42, holder1000Pct: 44.85, holder1000Diff: 1.15,
+        shareholdersDiff: -840, insiderPct: 21.30, insiderMonthlyDiff: 85,
+        cbCode: '33244 雙鴻四', cbPrice: 142.0, cbConvPrice: 580.0, cbPremiumPct: 3.85, cbConvertedPct: 36.4, cbMonthlyChangePct: 14.2,
+        revLatest: 16.8, revMoM: 8.4, revYoY: 46.5, epsLatestQ: 6.45, grossMargin: 26.2, opMargin: 14.8,
+        score: 94, strategies: ['CB_MOMENTUM', 'DUAL_HOLDERS', 'TRIPLE_MARGIN'],
+        tags: ['🔥 CB異動放量', '🚀 400/1000雙增', '📈 營收三率升'],
+        catalyst: '雙鴻四(33244)單月轉換率暴增14.2%，水冷CDU獲多家雲端CSP廠直採認證。'
+      },
+      {
+        id: '6285', name: '啟碁', market: '上市', industry: '網通設備 / 交換器',
+        price: 154.5, changePct: 1.31, pe: 14.2, forwardPe: 12.5, pb: 2.3, yieldPct: 5.2,
+        holder400Pct: 67.80, holder400Diff: 0.92, holder1000Pct: 59.10, holder1000Diff: 0.78,
+        shareholdersDiff: -540, insiderPct: 22.85, insiderMonthlyDiff: 680,
+        cbCode: '62854 啟碁四', cbPrice: 112.5, cbConvPrice: 138.0, cbPremiumPct: 4.58, cbConvertedPct: 18.2, cbMonthlyChangePct: 5.1,
+        revLatest: 102.4, revMoM: 4.2, revYoY: 18.6, epsLatestQ: 2.65, grossMargin: 13.8, opMargin: 5.4,
+        score: 88, strategies: ['DUAL_HOLDERS', 'INSIDER_ACCUM'],
+        tags: ['🚀 400/1000雙增', '👑 董監事大買'],
+        catalyst: '母公司緯創上月大舉增持500張，董監持股攀升至22.85%，殖利率5.2%下檔防禦性極高。'
+      },
+      {
+        id: '2330', name: '台積電', market: '上市', industry: '晶圓代工 / 先進製程',
+        price: 1085.0, changePct: 1.88, pe: 20.8, forwardPe: 17.5, pb: 6.8, yieldPct: 1.8,
+        holder400Pct: 88.92, holder400Diff: 0.45, holder1000Pct: 86.74, holder1000Diff: 0.51,
+        shareholdersDiff: -14200, insiderPct: 6.58, insiderMonthlyDiff: 12,
+        cbCode: '無', cbPrice: 0, cbConvPrice: 0, cbPremiumPct: 0, cbConvertedPct: 0, cbMonthlyChangePct: 0,
+        revLatest: 2894.3, revMoM: 4.9, revYoY: 39.6, epsLatestQ: 12.54, grossMargin: 57.8, opMargin: 47.5,
+        score: 93, strategies: ['DUAL_HOLDERS', 'TRIPLE_MARGIN'],
+        tags: ['🚀 400/1000雙增', '📈 營收三率升'],
+        catalyst: '3nm/2nm產能全滿，CoWoS先進封裝產能連季翻倍，外資連買推升千張大戶持股比至86.7%。'
+      },
+      {
+        id: '3450', name: '聯鈞', market: '上市', industry: '光通訊 / CPO矽光子',
+        price: 242.0, changePct: 4.76, pe: 26.5, forwardPe: 19.8, pb: 4.5, yieldPct: 1.5,
+        holder400Pct: 65.30, holder400Diff: 2.15, holder1000Pct: 53.40, holder1000Diff: 1.85,
+        shareholdersDiff: -1680, insiderPct: 19.40, insiderMonthlyDiff: 240,
+        cbCode: '34503 聯鈞三', cbPrice: 156.0, cbConvPrice: 182.0, cbPremiumPct: 2.80, cbConvertedPct: 38.2, cbMonthlyChangePct: 16.5,
+        revLatest: 8.65, revMoM: 12.4, revYoY: 54.2, epsLatestQ: 2.18, grossMargin: 31.4, opMargin: 18.2,
+        score: 95, strategies: ['CB_MOMENTUM', 'DUAL_HOLDERS', 'TRIPLE_MARGIN'],
+        tags: ['🔥 CB異動放量', '🚀 400/1000雙增', '📈 營收三率升'],
+        catalyst: '聯鈞三(34503)轉換比例破38%，400張大戶週增逾2.15%，CPO雷射光源與矽光子封測放量。'
+      },
+      {
+        id: '6669', name: '緯穎', market: '上市', industry: '雲端伺服器 ODM',
+        price: 2180.0, changePct: 3.32, pe: 18.2, forwardPe: 14.8, pb: 7.2, yieldPct: 2.8,
+        holder400Pct: 82.10, holder400Diff: 1.20, holder1000Pct: 76.50, holder1000Diff: 1.05,
+        shareholdersDiff: -420, insiderPct: 38.60, insiderMonthlyDiff: 120,
+        cbCode: '無', cbPrice: 0, cbConvPrice: 0, cbPremiumPct: 0, cbConvertedPct: 0, cbMonthlyChangePct: 0,
+        revLatest: 345.8, revMoM: 7.2, revYoY: 62.4, epsLatestQ: 28.60, grossMargin: 11.2, opMargin: 8.5,
+        score: 97, strategies: ['DUAL_HOLDERS', 'TRIPLE_MARGIN'],
+        tags: ['🚀 400/1000雙增', '📈 營收三率升'],
+        catalyst: '三大CSP客製化ASIC與GPU機櫃全面出貨，單季EPS飆上28.6元，本益比僅18倍極具估值優勢。'
+      },
+      {
+        id: '3661', name: '世芯-KY', market: '上市', industry: 'ASIC 設計 / AI晶片',
+        price: 2680.0, changePct: -1.47, pe: 24.8, forwardPe: 18.5, pb: 8.5, yieldPct: 1.2,
+        holder400Pct: 62.40, holder400Diff: 0.75, holder1000Pct: 51.20, holder1000Diff: 0.60,
+        shareholdersDiff: -280, insiderPct: 14.20, insiderMonthlyDiff: 45,
+        cbCode: '無', cbPrice: 0, cbConvPrice: 0, cbPremiumPct: 0, cbConvertedPct: 0, cbMonthlyChangePct: 0,
+        revLatest: 48.5, revMoM: 3.1, revYoY: 28.5, epsLatestQ: 18.40, grossMargin: 22.8, opMargin: 15.6,
+        score: 89, strategies: ['TRIPLE_MARGIN'],
+        tags: ['📈 營收三率升'],
+        catalyst: '北美雲端大客戶次世代5nm/3nm AI晶片量產，季EPS高達18.4元，壓回整理區間浮現甜蜜點。'
+      },
+      {
+        id: '8996', name: '高力', market: '上市', industry: '熱交換器 / 水冷歧管',
+        price: 368.5, changePct: 4.24, pe: 21.2, forwardPe: 16.8, pb: 5.1, yieldPct: 2.5,
+        holder400Pct: 59.80, holder400Diff: 1.65, holder1000Pct: 48.20, holder1000Diff: 1.30,
+        shareholdersDiff: -650, insiderPct: 24.50, insiderMonthlyDiff: 180,
+        cbCode: '89962 高力二', cbPrice: 138.5, cbConvPrice: 295.0, cbPremiumPct: 3.10, cbConvertedPct: 44.5, cbMonthlyChangePct: 11.2,
+        revLatest: 4.82, revMoM: 6.8, revYoY: 32.8, epsLatestQ: 2.85, grossMargin: 33.5, opMargin: 19.2,
+        score: 92, strategies: ['CB_MOMENTUM', 'DUAL_HOLDERS', 'TRIPLE_MARGIN'],
+        tags: ['🔥 CB異動放量', '🚀 400/1000雙增', '📈 營收三率升'],
+        catalyst: '高力二(89962)轉換突破44%，水冷分歧管(Manifold)產能擴增三倍，熱能技術門檻高。'
+      },
+      {
+        id: '2059', name: '川湖', market: '上市', industry: '伺服器導軌龍頭',
+        price: 1350.0, changePct: 2.66, pe: 22.4, forwardPe: 17.8, pb: 7.8, yieldPct: 2.6,
+        holder400Pct: 78.60, holder400Diff: 1.10, holder1000Pct: 71.20, holder1000Diff: 0.95,
+        shareholdersDiff: -310, insiderPct: 32.50, insiderMonthlyDiff: 90,
+        cbCode: '無', cbPrice: 0, cbConvPrice: 0, cbPremiumPct: 0, cbConvertedPct: 0, cbMonthlyChangePct: 0,
+        revLatest: 10.45, revMoM: 5.8, revYoY: 52.1, epsLatestQ: 15.80, grossMargin: 68.5, opMargin: 56.2,
+        score: 95, strategies: ['DUAL_HOLDERS', 'TRIPLE_MARGIN'],
+        tags: ['🚀 400/1000雙增', '📈 營收三率升'],
+        catalyst: 'AI高階伺服器導軌市占率突破70%，單季毛利率高達68.5%，籌碼極度集中於大戶。'
+      },
+      {
+        id: '3376', name: '新日興', market: '上市', industry: '軸承機構件 / 穿戴',
+        price: 215.0, changePct: 2.87, pe: 19.5, forwardPe: 15.2, pb: 3.4, yieldPct: 3.2,
+        holder400Pct: 64.50, holder400Diff: 1.35, holder1000Pct: 52.80, holder1000Diff: 1.10,
+        shareholdersDiff: -720, insiderPct: 26.80, insiderMonthlyDiff: 210,
+        cbCode: '33763 新日興三', cbPrice: 124.0, cbConvPrice: 185.0, cbPremiumPct: 4.20, cbConvertedPct: 26.8, cbMonthlyChangePct: 8.5,
+        revLatest: 14.2, revMoM: 4.5, revYoY: 26.4, epsLatestQ: 2.45, grossMargin: 24.8, opMargin: 13.5,
+        score: 90, strategies: ['CB_MOMENTUM', 'DUAL_HOLDERS', 'INSIDER_ACCUM'],
+        tags: ['🔥 CB異動放量', '🚀 400/1000雙增', '👑 董監事大買'],
+        catalyst: '新日興三(33763)轉換增溫，董監事上月加碼210張，摺疊手機與AI耳機軸承量產在即。'
+      },
+      {
+        id: '6442', name: '光聖', market: '上市', industry: '光被動元件 / CPO',
+        price: 495.0, changePct: 5.32, pe: 25.1, forwardPe: 18.2, pb: 6.9, yieldPct: 1.8,
+        holder400Pct: 61.20, holder400Diff: 2.40, holder1000Pct: 49.50, holder1000Diff: 2.10,
+        shareholdersDiff: -1150, insiderPct: 17.60, insiderMonthlyDiff: 160,
+        cbCode: '無', cbPrice: 0, cbConvPrice: 0, cbPremiumPct: 0, cbConvertedPct: 0, cbMonthlyChangePct: 0,
+        revLatest: 6.25, revMoM: 9.5, revYoY: 85.6, epsLatestQ: 3.42, grossMargin: 46.8, opMargin: 29.5,
+        score: 96, strategies: ['DUAL_HOLDERS', 'TRIPLE_MARGIN'],
+        tags: ['🚀 400/1000雙增', '📈 營收三率升'],
+        catalyst: '美系光通訊大廠主動元件與連接器拉貨，9月營收YoY飆增85.6%，毛利率突破46%。'
+      },
+      {
+        id: '2454', name: '聯發科', market: '上市', industry: 'IC設計龍頭 / 手機AI',
+        price: 1320.0, changePct: 1.54, pe: 17.5, forwardPe: 14.5, pb: 4.6, yieldPct: 4.5,
+        holder400Pct: 72.80, holder400Diff: 0.60, holder1000Pct: 66.40, holder1000Diff: 0.52,
+        shareholdersDiff: -2100, insiderPct: 8.90, insiderMonthlyDiff: 80,
+        cbCode: '無', cbPrice: 0, cbConvPrice: 0, cbPremiumPct: 0, cbConvertedPct: 0, cbMonthlyChangePct: 0,
+        revLatest: 452.1, revMoM: 3.8, revYoY: 22.5, epsLatestQ: 18.20, grossMargin: 48.6, opMargin: 21.5,
+        score: 89, strategies: ['DUAL_HOLDERS', 'TRIPLE_MARGIN'],
+        tags: ['🚀 400/1000雙增', '📈 營收三率升'],
+        catalyst: '天璣9400旗艦AI晶片獲陸系各大品牌首發採用，車用與客製化ASIC晶片挹注中長線成長。'
+      },
+      {
+        id: '3037', name: '欣興', market: '上市', industry: 'IC載板 / ABF載板',
+        price: 168.5, changePct: 2.12, pe: 16.8, forwardPe: 13.9, pb: 2.4, yieldPct: 3.6,
+        holder400Pct: 67.90, holder400Diff: 0.85, holder1000Pct: 58.60, holder1000Diff: 0.70,
+        shareholdersDiff: -1300, insiderPct: 15.20, insiderMonthlyDiff: 110,
+        cbCode: '30374 欣興四', cbPrice: 116.0, cbConvPrice: 152.0, cbPremiumPct: 5.20, cbConvertedPct: 18.2, cbMonthlyChangePct: 4.8,
+        revLatest: 108.4, revMoM: 3.9, revYoY: 24.1, epsLatestQ: 3.15, grossMargin: 19.8, opMargin: 10.2,
+        score: 87, strategies: ['CB_MOMENTUM', 'DUAL_HOLDERS', 'TRIPLE_MARGIN'],
+        tags: ['🔥 CB異動放量', '🚀 400/1000雙增'],
+        catalyst: '欣興四(30374)於轉換價上方換手積極，AI伺服器高層板與光通訊載板稼動率攀升至85%以上。'
+      },
+      {
+        id: '4979', name: '華星光', market: '上櫃', industry: '光收發模組 / 800G',
+        price: 152.0, changePct: 3.75, pe: 23.5, forwardPe: 17.5, pb: 4.8, yieldPct: 2.0,
+        holder400Pct: 57.40, holder400Diff: 1.85, holder1000Pct: 46.20, holder1000Diff: 1.60,
+        shareholdersDiff: -950, insiderPct: 16.80, insiderMonthlyDiff: 95,
+        cbCode: '無', cbPrice: 0, cbConvPrice: 0, cbPremiumPct: 0, cbConvertedPct: 0, cbMonthlyChangePct: 0,
+        revLatest: 3.45, revMoM: 6.2, revYoY: 39.5, epsLatestQ: 1.95, grossMargin: 36.4, opMargin: 21.2,
+        score: 88, strategies: ['DUAL_HOLDERS', 'TRIPLE_MARGIN'],
+        tags: ['🚀 400/1000雙增', '📈 營收三率升'],
+        catalyst: 'Marvell光通訊合作夥伴，受惠AI叢集後端網路升級800G，營收連三季雙位數增長。'
+      },
+      {
+        id: '8210', name: '一詮', market: '上市', industry: '均熱片 / 散熱導線架',
+        price: 122.5, changePct: 2.94, pe: 24.2, forwardPe: 18.6, pb: 3.8, yieldPct: 2.2,
+        holder400Pct: 55.80, holder400Diff: 2.10, holder1000Pct: 43.50, holder1000Diff: 1.75,
+        shareholdersDiff: -1120, insiderPct: 22.40, insiderMonthlyDiff: 350,
+        cbCode: '無', cbPrice: 0, cbConvPrice: 0, cbPremiumPct: 0, cbConvertedPct: 0, cbMonthlyChangePct: 0,
+        revLatest: 5.15, revMoM: 4.8, revYoY: 31.2, epsLatestQ: 1.45, grossMargin: 21.5, opMargin: 11.2,
+        score: 86, strategies: ['DUAL_HOLDERS', 'INSIDER_ACCUM'],
+        tags: ['🚀 400/1000雙增', '👑 董監事大買'],
+        catalyst: '高階均熱片(Heat Spreader)獲晶圓代工大廠驗證，董監事上月加碼350張，大戶連3週增加。'
+      }
+    ];
+
+    // =========================================================================
+    // TRADING JOURNAL HISTORICAL TRADES (Default Seed)
+    // =========================================================================
+    const DEFAULT_TRADES = [
+      {
+        id: 'trade_1', stockId: '2383', stockName: '台光電',
+        entryDate: '2026-06-15', entryPrice: 482.0, exitDate: '2026-09-20', exitPrice: 618.0,
+        shares: 2000, grossPnl: 272000, feeAndTax: 5720, netPnl: 266280, roiPct: 27.62,
+        entryStrategy: 'CB低溢價/異動', exitReason: '達目標價停利', discipline: 5,
+        notes: '台光電五(23835)轉換比例突破35%且溢價低於5%切入，一路沿10MA抱牢至618目標價停利，獲利勝率極高！'
+      },
+      {
+        id: 'trade_2', stockId: '3017', stockName: '奇鋐',
+        entryDate: '2026-07-02', entryPrice: 545.0, exitDate: '2026-09-28', exitPrice: 672.0,
+        shares: 2000, grossPnl: 254000, feeAndTax: 5500, netPnl: 248500, roiPct: 22.80,
+        entryStrategy: '400/1000大戶雙增', exitReason: '移動停利波段結清', discipline: 5,
+        notes: 'GB200水冷題材發酵，400張大戶連4週增加，於波段跌破5日線但守穩10日線時分批出清，嚴守波段紀律。'
+      },
+      {
+        id: 'trade_3', stockId: '3324', stockName: '雙鴻',
+        entryDate: '2026-08-10', entryPrice: 620.0, exitDate: '2026-10-12', exitPrice: 715.0,
+        shares: 1000, grossPnl: 95000, feeAndTax: 2600, netPnl: 92400, roiPct: 14.90,
+        entryStrategy: '營收三率三升', exitReason: '達目標價停利', discipline: 4,
+        notes: '單月營收年增突破40%，水冷CDU放量，獲利穩健入袋，出場稍早但完全符合原定停利目標。'
+      },
+      {
+        id: 'trade_4', stockId: '2330', stockName: '台積電',
+        entryDate: '2026-05-18', entryPrice: 880.0, exitDate: '2026-08-22', exitPrice: 1020.0,
+        shares: 1000, grossPnl: 140000, feeAndTax: 3850, netPnl: 136150, roiPct: 15.47,
+        entryStrategy: '突破整理區間', exitReason: '資金調配', discipline: 5,
+        notes: '突破歷史高點後進場，法說利多達標後分批獲利了結，資金轉移至彈性更高的中小型CB黑馬股。'
+      },
+      {
+        id: 'trade_5', stockId: '3661', stockName: '世芯-KY',
+        entryDate: '2026-08-25', entryPrice: 2680.0, exitDate: '2026-09-10', exitPrice: 2520.0,
+        shares: 100, grossPnl: -16000, feeAndTax: 350, netPnl: -16350, roiPct: -6.10,
+        entryStrategy: '突破整理區間', exitReason: '破移動均線/停損', discipline: 5,
+        notes: '嚴格遵守進場前設定的6%停損紀律，跌破季線果斷停損，成功避開後續回測，留得青山在。'
+      },
+      {
+        id: 'trade_6', stockId: '6285', stockName: '啟碁',
+        entryDate: '2026-07-15', entryPrice: 142.0, exitDate: '2026-09-18', exitPrice: 158.0,
+        shares: 3000, grossPnl: 48000, feeAndTax: 2180, netPnl: 45820, roiPct: 10.76,
+        entryStrategy: '董監大買', exitReason: '移動停利波段結清', discipline: 4,
+        notes: '董監事內部人連續兩個月於集中市場加碼，跟單波段獲利了結。'
+      }
+    ];
+
+    // =========================================================================
     // STATE MANAGEMENT
     // =========================================================================
     const STORAGE_KEY = 'ai_inv_station_stocks_v2_5';
+    const TRADES_STORAGE_KEY = 'ai_inv_station_trades_v1';
+
     let state = {
       mainView: 'portfolio',
       categoryFilter: 'holding',
@@ -1137,17 +1847,31 @@
       quickNoteStockId: null,
       lastSyncTime: null,
       autoRefreshTimer: null,
-      stocks: []
+      stocks: [],
+      trades: [],
+      // Screener Filters
+      screenerStrategyFilter: 'ALL',
+      screenerPeFilter: 'ALL',
+      screenerHolderFilter: 'ALL',
+      screenerRevFilter: 'ALL',
+      screenerCbFilter: 'ALL',
+      screenerSortBy: 'SCORE_DESC',
+      screenerSearchQuery: '',
+      // Journal Filters
+      journalStrategyFilter: 'ALL',
+      journalOutcomeFilter: 'ALL'
     };
 
     let charts = {
       majorHolder: null,
       institutional: null,
       revenue: null,
-      earnings: null
+      earnings: null,
+      journalStrategy: null
     };
 
     function loadState() {
+      // 1. 載入持股與鎖單股資料庫
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) {
@@ -1155,16 +1879,38 @@
           if (Array.isArray(parsed) && parsed.length > 0) {
             state.stocks = parsed;
             state.activeStockId = state.stocks[0].id;
-            return;
+          } else {
+            state.stocks = JSON.parse(JSON.stringify(DEFAULT_STOCKS));
           }
+        } else {
+          state.stocks = JSON.parse(JSON.stringify(DEFAULT_STOCKS));
         }
-      } catch (e) {}
-      state.stocks = JSON.parse(JSON.stringify(DEFAULT_STOCKS));
+      } catch (e) {
+        state.stocks = JSON.parse(JSON.stringify(DEFAULT_STOCKS));
+      }
+
+      // 2. 載入交易日誌覆盤資料庫
+      try {
+        const rawTrades = localStorage.getItem(TRADES_STORAGE_KEY);
+        if (rawTrades) {
+          const parsedTrades = JSON.parse(rawTrades);
+          if (Array.isArray(parsedTrades) && parsedTrades.length > 0) {
+            state.trades = parsedTrades;
+          } else {
+            state.trades = JSON.parse(JSON.stringify(DEFAULT_TRADES));
+          }
+        } else {
+          state.trades = JSON.parse(JSON.stringify(DEFAULT_TRADES));
+        }
+      } catch (e) {
+        state.trades = JSON.parse(JSON.stringify(DEFAULT_TRADES));
+      }
     }
 
     function saveState() {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state.stocks));
+        localStorage.setItem(TRADES_STORAGE_KEY, JSON.stringify(state.trades));
       } catch (e) {}
     }
 
@@ -1681,8 +2427,22 @@
     // =========================================================================
     function switchMainView(viewName) {
       state.mainView = viewName;
-      const views = { portfolio: 'viewPortfolio', chips: 'viewChips', financials: 'viewFinancials', sync: 'viewSync' };
-      const navBtns = { portfolio: 'navBtnPortfolio', chips: 'navBtnChips', financials: 'navBtnFinancials', sync: 'navBtnSync' };
+      const views = {
+        portfolio: 'viewPortfolio',
+        screener: 'viewScreener',
+        chips: 'viewChips',
+        financials: 'viewFinancials',
+        journal: 'viewJournal',
+        sync: 'viewSync'
+      };
+      const navBtns = {
+        portfolio: 'navBtnPortfolio',
+        screener: 'navBtnScreener',
+        chips: 'navBtnChips',
+        financials: 'navBtnFinancials',
+        journal: 'navBtnJournal',
+        sync: 'navBtnSync'
+      };
 
       Object.keys(views).forEach(k => {
         const sec = document.getElementById(views[k]);
@@ -1699,8 +2459,10 @@
       });
 
       if (viewName === 'portfolio') renderPortfolioTable();
+      else if (viewName === 'screener') renderScreenerTable();
       else if (viewName === 'chips') { populateStockSelects(); renderChipsView(); }
       else if (viewName === 'financials') { populateStockSelects(); renderFinancialsView(); }
+      else if (viewName === 'journal') renderJournalView();
     }
 
     function setCategoryFilter(cat) {
@@ -1941,6 +2703,11 @@
 
             <td class="py-3 px-2.5 text-center">
               <div class="flex flex-col gap-1 items-center">
+                ${s.category === 'holding' ? `
+                <button type="button" onclick="openCloseTradeModal('${s.id}')" class="w-full px-2 py-1 rounded-lg text-[11px] font-semibold bg-emerald-600/30 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/40 transition flex items-center justify-center gap-1 shadow-sm">
+                  <span>💰 平倉覆盤</span>
+                </button>
+                ` : ''}
                 <button type="button" onclick="inspectStockDeep('${s.id}', 'chips')" class="w-full px-2 py-1 rounded-lg text-[11px] font-medium bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 transition">
                   🎯 籌碼/CB
                 </button>
@@ -2463,12 +3230,810 @@
     }
 
     // =========================================================================
+    // SMART SCREENER CONTROLLER & LOGIC
+    // =========================================================================
+    function setScreenerStrategy(strat) {
+      state.screenerStrategyFilter = strat;
+      const pills = {
+        ALL: 'stratPillAll',
+        CB_MOMENTUM: 'stratPillCb',
+        DUAL_HOLDERS: 'stratPillHolders',
+        TRIPLE_MARGIN: 'stratPillMargin',
+        INSIDER_ACCUM: 'stratPillInsider'
+      };
+      Object.keys(pills).forEach(k => {
+        const btn = document.getElementById(pills[k]);
+        if (!btn) return;
+        btn.className = (k === strat)
+          ? 'px-3 py-1.5 rounded-xl text-xs font-semibold transition bg-indigo-600 text-white shadow'
+          : 'px-3 py-1.5 rounded-xl text-xs font-semibold transition bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700';
+      });
+      renderScreenerTable();
+    }
+
+    function resetScreenerFilters() {
+      state.screenerStrategyFilter = 'ALL';
+      const pe = document.getElementById('screenerPeFilter');
+      const holder = document.getElementById('screenerHolderFilter');
+      const rev = document.getElementById('screenerRevFilter');
+      const cb = document.getElementById('screenerCbFilter');
+      const sort = document.getElementById('screenerSortBy');
+      const search = document.getElementById('screenerSearchInput');
+
+      if (pe) pe.value = 'ALL';
+      if (holder) holder.value = 'ALL';
+      if (rev) rev.value = 'ALL';
+      if (cb) cb.value = 'ALL';
+      if (sort) sort.value = 'SCORE_DESC';
+      if (search) search.value = '';
+
+      setScreenerStrategy('ALL');
+      showToast('已重設選股篩選條件！');
+    }
+
+    function filterScreener() {
+      renderScreenerTable();
+    }
+
+    function renderScreenerTable() {
+      const peFilter = document.getElementById('screenerPeFilter')?.value || 'ALL';
+      const holderFilter = document.getElementById('screenerHolderFilter')?.value || 'ALL';
+      const revFilter = document.getElementById('screenerRevFilter')?.value || 'ALL';
+      const cbFilter = document.getElementById('screenerCbFilter')?.value || 'ALL';
+      const sortBy = document.getElementById('screenerSortBy')?.value || 'SCORE_DESC';
+      const searchQ = (document.getElementById('screenerSearchInput')?.value || '').trim().toLowerCase();
+
+      let list = SCREENER_DATABASE.filter(item => {
+        // 策略分類篩選
+        if (state.screenerStrategyFilter !== 'ALL') {
+          if (!item.strategies.includes(state.screenerStrategyFilter)) return false;
+        }
+        // 本益比篩選
+        if (peFilter === 'PE_LT_15' && item.pe >= 15) return false;
+        if (peFilter === 'PE_LT_20' && item.pe >= 20) return false;
+        if (peFilter === 'PE_LT_25' && item.pe >= 25) return false;
+
+        // 400張大戶持股比篩選
+        if (holderFilter === 'HOLDER_GT_60' && item.holder400Pct < 60) return false;
+        if (holderFilter === 'HOLDER_GT_70' && item.holder400Pct < 70) return false;
+        if (holderFilter === 'HOLDER_GT_75' && item.holder400Pct < 75) return false;
+
+        // 營收年增率 YoY 篩選
+        if (revFilter === 'REV_GT_15' && item.revYoY < 15) return false;
+        if (revFilter === 'REV_GT_25' && item.revYoY < 25) return false;
+        if (revFilter === 'REV_GT_40' && item.revYoY < 40) return false;
+
+        // 可轉債狀態篩選
+        if (cbFilter === 'HAS_CB' && (!item.cbCode || item.cbCode === '無')) return false;
+        if (cbFilter === 'CB_ACTIVE') {
+          if (!item.cbCode || item.cbCode === '無') return false;
+          if (item.cbConvertedPct < 15 && item.cbPremiumPct > 10) return false;
+        }
+
+        // 關鍵字搜尋
+        if (searchQ) {
+          const haystack = `${item.id} ${item.name} ${item.industry} ${item.catalyst} ${item.tags.join(' ')} ${item.cbCode}`.toLowerCase();
+          if (!haystack.includes(searchQ)) return false;
+        }
+
+        return true;
+      });
+
+      // 排序
+      list.sort((a, b) => {
+        if (sortBy === 'SCORE_DESC') return b.score - a.score;
+        if (sortBy === 'CB_CONV_DESC') return b.cbConvertedPct - a.cbConvertedPct;
+        if (sortBy === 'HOLDER_DIFF_DESC') return b.holder400Diff - a.holder400Diff;
+        if (sortBy === 'REV_YOY_DESC') return b.revYoY - a.revYoY;
+        if (sortBy === 'PRICE_CHG_DESC') return b.changePct - a.changePct;
+        return 0;
+      });
+
+      const badge = document.getElementById('screenerMatchedCountBadge');
+      if (badge) badge.textContent = `符合策略：${list.length} 檔`;
+
+      const tbody = document.getElementById('screenerTableBody');
+      if (!tbody) return;
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="11" class="py-12 text-center text-slate-400">查無符合所選條件的標的，請放寬篩選標準或點擊「重設條件」。</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(item => {
+        const isUp = item.changePct > 0;
+        const isDown = item.changePct < 0;
+        const priceColor = isUp ? 'tw-up' : (isDown ? 'tw-down' : 'text-slate-200');
+        const changeSign = isUp ? '▲ +' : (isDown ? '▼ ' : '');
+
+        // 檢查是否已在用戶的持股倉或鎖單股中
+        const existingStock = state.stocks.find(s => s.id === item.id);
+        let statusBadge = '';
+        if (existingStock) {
+          if (existingStock.category === 'holding') {
+            statusBadge = `<span class="px-2 py-0.5 text-[10px] rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">已在持股倉</span>`;
+          } else {
+            statusBadge = `<span class="px-2 py-0.5 text-[10px] rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">已在鎖單股</span>`;
+          }
+        }
+
+        // CB 顯示
+        let cbContent = `<span class="text-slate-500 text-[11px]">無發行可轉債</span>`;
+        if (item.cbCode && item.cbCode !== '無') {
+          const hot = item.cbConvertedPct >= 25 || item.cbMonthlyChangePct >= 8;
+          cbContent = `
+            <div class="font-semibold text-slate-200">${item.cbCode}</div>
+            <div class="text-[10px] text-slate-400 mt-0.5">轉換價 $${item.cbConvPrice} ｜ 溢價 ${item.cbPremiumPct}%</div>
+            <div class="mt-0.5">
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold ${hot ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-slate-800 text-slate-300'}">
+                已轉 ${item.cbConvertedPct}% (月+${item.cbMonthlyChangePct}%)
+              </span>
+            </div>
+          `;
+        }
+
+        const tagBadges = item.tags.map(t => {
+          let col = 'bg-slate-800 text-slate-300';
+          if (t.includes('CB')) col = 'bg-amber-500/20 text-amber-300 border border-amber-500/30';
+          else if (t.includes('大戶') || t.includes('雙增')) col = 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30';
+          else if (t.includes('營收')) col = 'bg-rose-500/20 text-rose-300 border border-rose-500/30';
+          else if (t.includes('董監')) col = 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+          return `<span class="px-1.5 py-0.5 rounded text-[10px] font-medium ${col} whitespace-nowrap">${t}</span>`;
+        }).join(' ');
+
+        return `
+          <tr class="hover:bg-slate-800/50 transition group">
+            <td class="py-3 px-3">
+              <div class="flex items-center gap-1.5">
+                <span class="font-bold text-sm text-white">${item.id} ${item.name}</span>
+                <span class="px-1.5 py-0.2 text-[10px] rounded bg-purple-500/20 text-purple-300 font-bold border border-purple-500/30">${item.score}分</span>
+              </div>
+              <div class="flex items-center gap-1.5 mt-1">
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">${item.market}</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300">${item.industry}</span>
+              </div>
+              <div class="mt-1">${statusBadge}</div>
+            </td>
+
+            <td class="py-3 px-2.5 text-right">
+              <div class="text-sm font-bold ${priceColor}">$${formatNumber(item.price, 1)}</div>
+              <div class="text-[11px] font-semibold ${priceColor}">${changeSign}${item.changePct.toFixed(2)}%</div>
+            </td>
+
+            <td class="py-3 px-2.5 text-center">
+              <div class="flex flex-col gap-1 items-center justify-center">
+                ${tagBadges}
+              </div>
+            </td>
+
+            <td class="py-3 px-2.5 text-center bg-indigo-950/10">
+              <div class="font-bold text-white">${item.holder400Pct.toFixed(2)}%</div>
+              <div class="text-[11px] font-semibold ${item.holder400Diff >= 0 ? 'tw-up' : 'tw-down'}">
+                週 ${item.holder400Diff >= 0 ? '▲ +' : '▼ '}${item.holder400Diff.toFixed(2)}%
+              </div>
+            </td>
+
+            <td class="py-3 px-2.5 text-center bg-indigo-950/10">
+              <div class="font-bold text-white">${item.holder1000Pct.toFixed(2)}%</div>
+              <div class="text-[10px] text-slate-400">
+                散戶週 ${item.shareholdersDiff <= 0 ? '▼ ' : '▲ +'}${Math.abs(item.shareholdersDiff)}人
+              </div>
+            </td>
+
+            <td class="py-3 px-2.5 text-center">
+              <div class="font-semibold text-white">持股 ${item.insiderPct.toFixed(1)}%</div>
+              <div class="text-[11px] font-semibold ${item.insiderMonthlyDiff > 0 ? 'tw-up' : 'text-slate-400'}">
+                月增減 ${item.insiderMonthlyDiff > 0 ? '+' : ''}${item.insiderMonthlyDiff} 張
+              </div>
+            </td>
+
+            <td class="py-3 px-2.5 text-center">${cbContent}</td>
+
+            <td class="py-3 px-2.5 text-right">
+              <div class="font-semibold ${item.revYoY >= 20 ? 'tw-up' : 'text-slate-200'}">月營收 YoY +${item.revYoY.toFixed(1)}%</div>
+              <div class="text-[11px] text-slate-300">最新季 EPS <span class="font-bold text-indigo-300">$${item.epsLatestQ.toFixed(2)}</span></div>
+              <div class="text-[10px] text-slate-400">毛利 ${item.grossMargin}% ｜ 營益 ${item.opMargin}%</div>
+            </td>
+
+            <td class="py-3 px-2.5 text-right">
+              <div class="font-semibold text-slate-200">PE ${item.pe}x</div>
+              <div class="text-[11px] text-indigo-300">Forward ${item.forwardPe}x</div>
+              <div class="text-[10px] text-slate-400">殖利率 ${item.yieldPct}%</div>
+            </td>
+
+            <td class="py-3 px-3">
+              <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-[11px] text-slate-300 leading-relaxed">
+                ${item.catalyst}
+              </div>
+            </td>
+
+            <td class="py-3 px-3 text-center">
+              <div class="flex flex-col gap-1.5 items-center w-28 mx-auto">
+                <button type="button" onclick="addCandidateToLocked('${item.id}')" class="w-full px-2 py-1 rounded-lg text-[11px] font-semibold bg-amber-600/20 hover:bg-amber-600 text-amber-300 hover:text-white border border-amber-500/40 transition">
+                  🔒 轉入鎖單觀察
+                </button>
+                <button type="button" onclick="addCandidateToHolding('${item.id}')" class="w-full px-2 py-1 rounded-lg text-[11px] font-semibold bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/40 transition">
+                  💼 轉入持股倉
+                </button>
+                <button type="button" onclick="inspectScreenerInChips('${item.id}')" class="w-full px-2 py-0.5 rounded text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 transition">
+                  🔍 深入籌碼
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function addCandidateToLocked(candidateId) {
+      const item = SCREENER_DATABASE.find(c => c.id === candidateId);
+      if (!item) return;
+
+      const existing = state.stocks.find(s => s.id === item.id);
+      if (existing) {
+        existing.category = 'locked';
+        existing.targetPrice = Math.round(item.price * 0.95);
+        showToast(`已將 ${item.id} ${item.name} 狀態更新為【鎖單觀察】！`);
+      } else {
+        const history = createStockHistoricalData(item.price, item.holder400Pct, item.holder1000Pct);
+        state.stocks.push({
+          id: item.id,
+          name: item.name,
+          market: item.market,
+          category: 'locked',
+          shares: 0,
+          avgCost: 0,
+          price: item.price,
+          changePct: item.changePct,
+          targetPrice: Math.round(item.price * 0.95),
+          strategyTag: item.tags[0].replace(/[🔥🚀📈👑]/g, '').trim(),
+          instToday: 450,
+          inst5d: 1850,
+          foreignPct: 28.5,
+          trustPct: 9.2,
+          instStreak: '多頭蓄勢量化篩選',
+          holder400Pct: item.holder400Pct,
+          holder400Diff: item.holder400Diff,
+          holder1000Pct: item.holder1000Pct,
+          holder1000Diff: item.holder1000Diff,
+          shareholdersCount: 32000,
+          shareholdersDiff: item.shareholdersDiff,
+          insiderPct: item.insiderPct,
+          insiderMonthlyDiff: item.insiderMonthlyDiff,
+          insiderPledgePct: 0.0,
+          cbCode: item.cbCode,
+          cbPrice: item.cbPrice,
+          cbConvPrice: item.cbConvPrice,
+          cbPremiumPct: item.cbPremiumPct,
+          cbConvertedPct: item.cbConvertedPct,
+          cbMonthlyChangePct: item.cbMonthlyChangePct,
+          revLatest: item.revLatest,
+          revMoM: item.revMoM,
+          revYoY: item.revYoY,
+          revCumYoY: item.revYoY * 0.96,
+          epsLatestQ: item.epsLatestQ,
+          grossMargin: item.grossMargin,
+          opMargin: item.opMargin,
+          netMargin: item.opMargin * 0.8,
+          roe: 22.5,
+          pe: item.pe,
+          forwardPe: item.forwardPe,
+          pb: item.pb,
+          yieldPct: item.yieldPct,
+          bps: Math.round(item.price * 0.35),
+          debtRatio: 45.0,
+          memo: `【篩選器納入】${item.catalyst}`,
+          ...history
+        });
+        showToast(`已成功將 ${item.id} ${item.name} 轉入【目前鎖單股】！`);
+      }
+      saveState();
+      renderPortfolioTable();
+      renderScreenerTable();
+      populateStockSelects();
+    }
+
+    function addCandidateToHolding(candidateId) {
+      const item = SCREENER_DATABASE.find(c => c.id === candidateId);
+      if (!item) return;
+
+      addCandidateToLocked(candidateId);
+      convertLockedToHolding(candidateId);
+    }
+
+    function inspectScreenerInChips(stockId) {
+      let s = state.stocks.find(item => item.id === stockId);
+      if (!s) {
+        addCandidateToLocked(stockId);
+      }
+      inspectStockDeep(stockId, 'chips');
+    }
+
+    // =========================================================================
+    // TRADING JOURNAL & WIN-RATE ANALYTICS
+    // =========================================================================
+    function updateNavJournalBadge() {
+      const trades = state.trades || [];
+      const totalCount = trades.length;
+      const winTrades = trades.filter(t => t.netPnl > 0);
+      const winRate = totalCount > 0 ? (winTrades.length / totalCount) * 100 : 0;
+      const navBadge = document.getElementById('navJournalWinBadge');
+      if (navBadge) navBadge.textContent = `${winRate.toFixed(0)}%勝率`;
+    }
+
+    function renderJournalView() {
+      const trades = state.trades || [];
+      const totalCount = trades.length;
+      const winTrades = trades.filter(t => t.netPnl > 0);
+      const lossTrades = trades.filter(t => t.netPnl <= 0);
+      const winRate = totalCount > 0 ? (winTrades.length / totalCount) * 100 : 0;
+
+      const totalNetPnl = trades.reduce((sum, t) => sum + (t.netPnl || 0), 0);
+
+      const totalWinDollar = winTrades.reduce((sum, t) => sum + t.netPnl, 0);
+      const totalLossDollar = Math.abs(lossTrades.reduce((sum, t) => sum + t.netPnl, 0));
+      const avgWin = winTrades.length > 0 ? (totalWinDollar / winTrades.length) : 0;
+      const avgLoss = lossTrades.length > 0 ? (totalLossDollar / lossTrades.length) : 0;
+      const payoffRatio = avgLoss > 0 ? (avgWin / avgLoss) : (avgWin > 0 ? 99 : 0);
+
+      // Best Strategy
+      const stratMap = {};
+      trades.forEach(t => {
+        const s = t.entryStrategy || '自選策略';
+        if (!stratMap[s]) stratMap[s] = { count: 0, wins: 0, netPnl: 0 };
+        stratMap[s].count++;
+        if (t.netPnl > 0) stratMap[s].wins++;
+        stratMap[s].netPnl += t.netPnl;
+      });
+
+      let bestStratName = '累積統計中';
+      let bestStratWinRate = 0;
+      let bestStratPnl = -999999999;
+      Object.keys(stratMap).forEach(k => {
+        const item = stratMap[k];
+        const wr = (item.wins / item.count) * 100;
+        if (item.count >= 1 && item.netPnl > bestStratPnl) {
+          bestStratPnl = item.netPnl;
+          bestStratName = k;
+          bestStratWinRate = wr;
+        }
+      });
+
+      const avgDiscipline = totalCount > 0
+        ? (trades.reduce((sum, t) => sum + (Number(t.discipline) || 5), 0) / totalCount)
+        : 5.0;
+
+      updateNavJournalBadge();
+
+      // Update KPI Cards
+      document.getElementById('journalWinRateVal').textContent = `${winRate.toFixed(1)}%`;
+      document.getElementById('journalWinRateSub').textContent = `${winTrades.length} 勝 / ${lossTrades.length} 敗 (共 ${totalCount} 筆平倉)`;
+
+      const pnlVal = document.getElementById('journalTotalPnlVal');
+      pnlVal.textContent = (totalNetPnl >= 0 ? '+$' : '-$') + formatNumber(Math.abs(totalNetPnl), 0);
+      pnlVal.className = 'text-2xl font-black mt-1.5 ' + (totalNetPnl >= 0 ? 'tw-up' : 'tw-down');
+
+      document.getElementById('journalPayoffVal').textContent = payoffRatio >= 90 ? '∞ (無虧損)' : payoffRatio.toFixed(2);
+      document.getElementById('journalPayoffSub').textContent = `平均獲利 $${formatNumber(avgWin / 1000, 1)}k / 虧損 $${formatNumber(avgLoss / 1000, 1)}k`;
+
+      document.getElementById('journalBestStratVal').textContent = bestStratName;
+      document.getElementById('journalBestStratSub').textContent = bestStratName !== '累積統計中'
+        ? `勝率 ${bestStratWinRate.toFixed(1)}% (獲利 +$${formatNumber(bestStratPnl / 1000, 0)}k)`
+        : '累積足夠平倉單後顯示';
+
+      document.getElementById('journalDisciplineVal').innerHTML = `${avgDiscipline.toFixed(1)} <span class="text-sm font-normal text-slate-400">/ 5.0</span>`;
+
+      renderJournalStrategyChart(stratMap);
+      renderJournalTable();
+    }
+
+    function renderJournalStrategyChart(stratMap) {
+      const labels = Object.keys(stratMap);
+      if (labels.length === 0) return;
+
+      const pnlData = labels.map(k => Math.round(stratMap[k].netPnl / 1000));
+      const winRateData = labels.map(k => Math.round((stratMap[k].wins / stratMap[k].count) * 100));
+
+      const ctx = document.getElementById('journalStrategyChart').getContext('2d');
+      if (charts.journalStrategy) charts.journalStrategy.destroy();
+
+      charts.journalStrategy = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            {
+              type: 'bar',
+              label: '已實現淨損益 (千元)',
+              data: pnlData,
+              backgroundColor: pnlData.map(v => v >= 0 ? 'rgba(239, 68, 68, 0.7)' : 'rgba(16, 185, 129, 0.7)'),
+              borderRadius: 6,
+              yAxisID: 'y'
+            },
+            {
+              type: 'line',
+              label: '策略勝率 (%)',
+              data: winRateData,
+              borderColor: '#38bdf8',
+              backgroundColor: '#38bdf8',
+              borderWidth: 2.5,
+              tension: 0.25,
+              yAxisID: 'y1'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: '#cbd5e1', font: { size: 11 } } } },
+          scales: {
+            x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(51,65,85,0.4)' } },
+            y: { position: 'left', ticks: { color: '#cbd5e1', callback: v => '$' + v + 'k' }, grid: { color: 'rgba(51,65,85,0.4)' } },
+            y1: { position: 'right', min: 0, max: 100, ticks: { color: '#38bdf8', callback: v => v + '%' }, grid: { drawOnChartArea: false } }
+          }
+        }
+      });
+    }
+
+    function renderJournalTable() {
+      const stratFilter = document.getElementById('journalStrategyFilter')?.value || 'ALL';
+      const outcomeFilter = document.getElementById('journalOutcomeFilter')?.value || 'ALL';
+
+      let list = [...(state.trades || [])];
+
+      if (stratFilter !== 'ALL') {
+        list = list.filter(t => t.entryStrategy === stratFilter);
+      }
+      if (outcomeFilter === 'WIN') {
+        list = list.filter(t => t.netPnl > 0);
+      } else if (outcomeFilter === 'LOSS') {
+        list = list.filter(t => t.netPnl <= 0);
+      }
+
+      const tbody = document.getElementById('journalTableBody');
+      if (!tbody) return;
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" class="py-12 text-center text-slate-400">目前尚無符合篩選條件的覆盤紀錄。</td></tr>`;
+        return;
+      }
+
+      list.sort((a, b) => new Date(b.exitDate || 0) - new Date(a.exitDate || 0));
+
+      tbody.innerHTML = list.map(t => {
+        const isWin = t.netPnl >= 0;
+        const pnlColor = isWin ? 'tw-up' : 'tw-down';
+        const pnlSign = isWin ? '+$' : '-$';
+        const roiSign = isWin ? '+' : '';
+
+        let daysHeld = '-';
+        if (t.entryDate && t.exitDate) {
+          const diffMs = new Date(t.exitDate) - new Date(t.entryDate);
+          daysHeld = Math.max(1, Math.round(diffMs / (1000 * 60 * 60 * 24))) + ' 天';
+        }
+
+        const stars = '⭐'.repeat(Math.max(1, Math.min(5, Number(t.discipline) || 5)));
+
+        return `
+          <tr class="hover:bg-slate-800/50 transition">
+            <td class="py-3 px-3">
+              <div class="font-bold text-sm text-white">${t.stockId} ${t.stockName}</div>
+              <div class="text-[10px] text-slate-400 mt-0.5">單號 #${t.id.slice(-6)}</div>
+            </td>
+
+            <td class="py-3 px-2.5 text-right">
+              <div class="font-semibold text-slate-200">${t.entryDate || '-'}</div>
+              <div class="text-[11px] text-slate-400">$${formatNumber(t.entryPrice, 1)}</div>
+            </td>
+
+            <td class="py-3 px-2.5 text-right">
+              <div class="font-semibold text-slate-200">${t.exitDate || '-'}</div>
+              <div class="text-[11px] font-bold text-white">$${formatNumber(t.exitPrice, 1)}</div>
+            </td>
+
+            <td class="py-3 px-2.5 text-right">
+              <div class="font-semibold text-white">${formatNumber(t.shares)} 股</div>
+              <div class="text-[11px] text-slate-400">${daysHeld}</div>
+            </td>
+
+            <td class="py-3 px-2.5 text-right">
+              <div class="text-sm font-black ${pnlColor}">${pnlSign}${formatNumber(Math.abs(t.netPnl), 0)}</div>
+              <div class="text-[11px] font-bold ${pnlColor}">${roiSign}${(t.roiPct || 0).toFixed(2)}%</div>
+            </td>
+
+            <td class="py-3 px-2.5 text-center">
+              <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 whitespace-nowrap">
+                ${t.entryStrategy || '自選策略'}
+              </span>
+            </td>
+
+            <td class="py-3 px-2.5 text-center">
+              <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-800 text-slate-300 whitespace-nowrap">
+                ${t.exitReason || '未設定'}
+              </span>
+            </td>
+
+            <td class="py-3 px-2.5 text-center">
+              <div class="text-xs tracking-tighter" title="紀律評分 ${t.discipline} 星">${stars}</div>
+            </td>
+
+            <td class="py-3 px-3">
+              <div onclick="openEditJournalModal('${t.id}')" title="點擊編輯覆盤反思" class="p-2.5 rounded-xl bg-slate-950/90 hover:bg-slate-950 border border-slate-800 hover:border-indigo-500/60 cursor-pointer transition">
+                <p class="text-[11px] text-slate-200 leading-relaxed">${t.notes || '點擊新增覆盤心得...'}</p>
+                <span class="text-[10px] text-indigo-400 mt-1 inline-block">✎ 點擊編輯覆盤反思</span>
+              </div>
+            </td>
+
+            <td class="py-3 px-2 text-center">
+              <div class="flex items-center justify-center gap-1">
+                <button type="button" onclick="openEditJournalModal('${t.id}')" class="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300">編輯</button>
+                <button type="button" onclick="deleteTrade('${t.id}')" class="px-1.5 py-0.5 rounded text-[10px] bg-rose-950/60 hover:bg-rose-700 text-rose-300">刪除</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // =========================================================================
+    // CLOSE TRADE MODAL WORKFLOW
+    // =========================================================================
+    function openCloseTradeModal(stockId) {
+      const s = state.stocks.find(item => item.id === stockId);
+      if (!s) return;
+
+      document.getElementById('closeTradeStockId').value = s.id;
+      document.getElementById('closeTradeStockBadge').textContent = `${s.id} ${s.name}`;
+      document.getElementById('closeTradeEntryPrice').value = s.avgCost || s.price;
+      document.getElementById('closeTradeShares').value = s.shares || 1000;
+      document.getElementById('closeTradeExitPrice').value = s.price;
+
+      const today = new Date().toISOString().split('T')[0];
+      const past = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      document.getElementById('closeTradeEntryDate').value = past;
+      document.getElementById('closeTradeExitDate').value = today;
+
+      const stratSel = document.getElementById('closeTradeStrategy');
+      if (s.strategyTag && s.strategyTag.includes('CB')) stratSel.value = 'CB低溢價/異動';
+      else if (s.strategyTag && s.strategyTag.includes('大戶')) stratSel.value = '400/1000大戶雙增';
+      else if (s.strategyTag && s.strategyTag.includes('營收')) stratSel.value = '營收三率三升';
+      else stratSel.value = 'CB低溢價/異動';
+
+      document.getElementById('closeTradeExitReason').value = '達目標價停利';
+      document.getElementById('closeTradeDiscipline').value = '5';
+      document.getElementById('closeTradeNotes').value = s.memo || '';
+
+      updateCloseTradePreview();
+
+      const modal = document.getElementById('closeTradeModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeCloseTradeModal() {
+      const modal = document.getElementById('closeTradeModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function updateCloseTradePreview() {
+      const entryPrice = parseFloat(document.getElementById('closeTradeEntryPrice').value) || 0;
+      const shares = parseFloat(document.getElementById('closeTradeShares').value) || 0;
+      const exitPrice = parseFloat(document.getElementById('closeTradeExitPrice').value) || 0;
+
+      const grossCost = shares * entryPrice;
+      const entryFee = grossCost * 0.001425;
+      const totalCost = grossCost + entryFee;
+
+      const grossRev = shares * exitPrice;
+      const exitFee = grossRev * 0.001425;
+      const exitTax = grossRev * 0.003;
+      const netRev = grossRev - exitFee - exitTax;
+
+      const netPnl = netRev - totalCost;
+      const roiPct = totalCost > 0 ? (netPnl / totalCost) * 100 : 0;
+
+      document.getElementById('closePreviewCost').textContent = `$${formatNumber(totalCost, 0)} (含手續費 $${Math.round(entryFee)})`;
+      document.getElementById('closePreviewRevenue').textContent = `$${formatNumber(netRev, 0)} (扣手續費+稅 $${Math.round(exitFee + exitTax)})`;
+
+      const pnlLabel = document.getElementById('closePreviewNetPnl');
+      pnlLabel.textContent = `${netPnl >= 0 ? '+$' : '-$'}${formatNumber(Math.abs(netPnl), 0)} (${roiPct >= 0 ? '+' : ''}${roiPct.toFixed(2)}%)`;
+      pnlLabel.className = 'text-base font-black ' + (netPnl >= 0 ? 'tw-up' : 'tw-down');
+    }
+
+    function commitCloseTrade() {
+      const stockId = document.getElementById('closeTradeStockId').value;
+      const s = state.stocks.find(item => item.id === stockId);
+      if (!s) return;
+
+      const entryDate = document.getElementById('closeTradeEntryDate').value;
+      const entryPrice = parseFloat(document.getElementById('closeTradeEntryPrice').value) || s.avgCost;
+      const shares = parseFloat(document.getElementById('closeTradeShares').value) || s.shares;
+      const exitDate = document.getElementById('closeTradeExitDate').value;
+      const exitPrice = parseFloat(document.getElementById('closeTradeExitPrice').value) || s.price;
+      const entryStrategy = document.getElementById('closeTradeStrategy').value;
+      const exitReason = document.getElementById('closeTradeExitReason').value;
+      const discipline = parseInt(document.getElementById('closeTradeDiscipline').value) || 5;
+      const notes = document.getElementById('closeTradeNotes').value.trim();
+
+      const grossCost = shares * entryPrice;
+      const grossRev = shares * exitPrice;
+      const feeAndTax = Math.round(grossCost * 0.001425 + grossRev * 0.004425);
+      const netPnl = Math.round(grossRev - grossCost - feeAndTax);
+      const roiPct = grossCost > 0 ? (netPnl / grossCost) * 100 : 0;
+
+      const newTrade = {
+        id: 'trade_' + Date.now(),
+        stockId: s.id,
+        stockName: s.name,
+        entryDate,
+        entryPrice,
+        exitDate,
+        exitPrice,
+        shares,
+        grossPnl: Math.round(grossRev - grossCost),
+        feeAndTax,
+        netPnl,
+        roiPct,
+        entryStrategy,
+        exitReason,
+        discipline,
+        notes
+      };
+
+      state.trades.unshift(newTrade);
+
+      // 若部分平倉則扣減股數，全數平倉則移出持股倉
+      if (s.shares > shares) {
+        s.shares -= shares;
+        showToast(`已平倉 ${shares} 股，持股倉尚餘 ${s.shares} 股！紀錄已存入日誌。`);
+      } else {
+        state.stocks = state.stocks.filter(item => item.id !== stockId);
+        showToast(`🎉 ${s.id} ${s.name} 全數平倉結算完成！已自動移出持股倉並記錄於交易日誌。`);
+      }
+
+      saveState();
+      closeCloseTradeModal();
+      renderPortfolioTable();
+      populateStockSelects();
+      if (state.mainView === 'journal') renderJournalView();
+      else updateNavJournalBadge();
+    }
+
+    // =========================================================================
+    // MANUAL TRADE RECORD MODAL & MANAGEMENT
+    // =========================================================================
+    function openManualTradeModal() {
+      document.getElementById('manualTradeModalTitle').textContent = '＋ 手動新增交易覆盤紀錄';
+      document.getElementById('manualTradeId').value = '';
+      document.getElementById('manualTradeStockId').value = '';
+      document.getElementById('manualTradeStockName').value = '';
+      const today = new Date().toISOString().split('T')[0];
+      const past = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      document.getElementById('manualTradeEntryDate').value = past;
+      document.getElementById('manualTradeEntryPrice').value = '100';
+      document.getElementById('manualTradeShares').value = '1000';
+      document.getElementById('manualTradeExitDate').value = today;
+      document.getElementById('manualTradeExitPrice').value = '115';
+      document.getElementById('manualTradeStrategy').value = 'CB低溢價/異動';
+      document.getElementById('manualTradeExitReason').value = '達目標價停利';
+      document.getElementById('manualTradeDiscipline').value = '5';
+      document.getElementById('manualTradeNotes').value = '';
+
+      const modal = document.getElementById('manualTradeModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function openEditJournalModal(tradeId) {
+      const t = state.trades.find(item => item.id === tradeId);
+      if (!t) return;
+
+      document.getElementById('manualTradeModalTitle').textContent = `✎ 編輯覆盤紀錄：${t.stockId} ${t.stockName}`;
+      document.getElementById('manualTradeId').value = t.id;
+      document.getElementById('manualTradeStockId').value = t.stockId;
+      document.getElementById('manualTradeStockName').value = t.stockName;
+      document.getElementById('manualTradeEntryDate').value = t.entryDate || '';
+      document.getElementById('manualTradeEntryPrice').value = t.entryPrice;
+      document.getElementById('manualTradeShares').value = t.shares;
+      document.getElementById('manualTradeExitDate').value = t.exitDate || '';
+      document.getElementById('manualTradeExitPrice').value = t.exitPrice;
+      document.getElementById('manualTradeStrategy').value = t.entryStrategy || '自選策略';
+      document.getElementById('manualTradeExitReason').value = t.exitReason || '達目標價停利';
+      document.getElementById('manualTradeDiscipline').value = t.discipline || 5;
+      document.getElementById('manualTradeNotes').value = t.notes || '';
+
+      const modal = document.getElementById('manualTradeModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeManualTradeModal() {
+      const modal = document.getElementById('manualTradeModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function commitManualTrade() {
+      const stockId = document.getElementById('manualTradeStockId').value.trim();
+      const stockName = document.getElementById('manualTradeStockName').value.trim();
+      if (!stockId || !stockName) {
+        showToast('請輸入股票代號與名稱！');
+        return;
+      }
+
+      const tradeId = document.getElementById('manualTradeId').value;
+      const entryDate = document.getElementById('manualTradeEntryDate').value;
+      const entryPrice = parseFloat(document.getElementById('manualTradeEntryPrice').value) || 0;
+      const shares = parseFloat(document.getElementById('manualTradeShares').value) || 1000;
+      const exitDate = document.getElementById('manualTradeExitDate').value;
+      const exitPrice = parseFloat(document.getElementById('manualTradeExitPrice').value) || 0;
+      const entryStrategy = document.getElementById('manualTradeStrategy').value;
+      const exitReason = document.getElementById('manualTradeExitReason').value;
+      const discipline = parseInt(document.getElementById('manualTradeDiscipline').value) || 5;
+      const notes = document.getElementById('manualTradeNotes').value.trim();
+
+      const grossCost = shares * entryPrice;
+      const grossRev = shares * exitPrice;
+      const feeAndTax = Math.round(grossCost * 0.001425 + grossRev * 0.004425);
+      const netPnl = Math.round(grossRev - grossCost - feeAndTax);
+      const roiPct = grossCost > 0 ? (netPnl / grossCost) * 100 : 0;
+
+      if (tradeId) {
+        const t = state.trades.find(item => item.id === tradeId);
+        if (t) {
+          Object.assign(t, {
+            stockId, stockName, entryDate, entryPrice, exitDate, exitPrice,
+            shares, grossPnl: Math.round(grossRev - grossCost), feeAndTax, netPnl, roiPct,
+            entryStrategy, exitReason, discipline, notes
+          });
+          showToast(`已更新 ${stockId} ${stockName} 的覆盤紀錄！`);
+        }
+      } else {
+        state.trades.unshift({
+          id: 'trade_' + Date.now(),
+          stockId, stockName, entryDate, entryPrice, exitDate, exitPrice,
+          shares, grossPnl: Math.round(grossRev - grossCost), feeAndTax, netPnl, roiPct,
+          entryStrategy, exitReason, discipline, notes
+        });
+        showToast(`已新增 ${stockId} ${stockName} 至交易覆盤日誌！`);
+      }
+
+      saveState();
+      closeManualTradeModal();
+      renderJournalView();
+    }
+
+    function deleteTrade(tradeId) {
+      if (!confirm('確定要刪除這筆交易覆盤紀錄嗎？')) return;
+      state.trades = state.trades.filter(t => t.id !== tradeId);
+      saveState();
+      renderJournalView();
+      showToast('已刪除該筆覆盤紀錄');
+    }
+
+    function exportJournalCsv() {
+      const header = '交易單號,股票代號,股票名稱,買進日期,買進價,平倉日期,賣出價,平倉股數,手續費與稅,已實現淨損益,報酬率%,進場策略,出場原因,紀律星級,覆盤反思備註';
+      const rows = (state.trades || []).map(t => {
+        const safeNotes = `"${(t.notes || '').replace(/"/g, '""')}"`;
+        return [
+          t.id, t.stockId, t.stockName, t.entryDate, t.entryPrice, t.exitDate, t.exitPrice,
+          t.shares, t.feeAndTax, t.netPnl, (t.roiPct || 0).toFixed(2), t.entryStrategy,
+          t.exitReason, t.discipline, safeNotes
+        ].join(',');
+      });
+      triggerDownload('my_trading_journal_review.csv', [header, ...rows].join('\n'));
+      showToast('已匯出完整交易覆盤日誌 CSV！');
+    }
+
+    // =========================================================================
     // INITIALIZATION
     // =========================================================================
     window.addEventListener('DOMContentLoaded', () => {
       loadState();
       setCategoryFilter('holding');
       populateStockSelects();
+      updateNavJournalBadge();
 
       // 自動檢查是否運行於 Cloudflare Pages
       if (window.location.hostname.includes('.pages.dev') || window.location.hostname.includes('workers.dev')) {
