@@ -14,6 +14,8 @@
   
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- Google Identity Services (GIS) for Google Account OAuth Sign-In -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
   
   <script>
@@ -57,6 +59,68 @@
   </style>
 </head>
 <body class="min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white">
+
+  <!-- ========================================================================= -->
+  <!-- SECURITY SHIELD GATEWAY: GOOGLE ACCOUNT AUTHENTICATION & ACCESS CONTROL   -->
+  <!-- ========================================================================= -->
+  <div id="securityGate" class="fixed inset-0 z-[100] bg-slate-950/98 backdrop-blur-2xl flex items-center justify-center p-4">
+    <div class="max-w-md w-full bg-slate-900 border border-slate-700/80 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 text-center relative overflow-hidden">
+      <!-- Ambient Glow -->
+      <div class="absolute -top-24 -left-24 w-48 h-48 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-cyan-500/20 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="flex flex-col items-center space-y-3">
+        <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 via-sky-500 to-cyan-400 flex items-center justify-center shadow-xl shadow-indigo-500/30 text-3xl">
+          🛡️
+        </div>
+        <div>
+          <h2 class="text-xl font-bold text-white tracking-tight">個人專屬 AI 投資資訊站</h2>
+          <p class="text-xs text-slate-400 mt-1">資訊安全存取控制・最高管理員授權防護</p>
+        </div>
+      </div>
+
+      <!-- Security Status Badge -->
+      <div class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 text-xs text-slate-300 space-y-1 text-left">
+        <div class="flex items-center gap-1.5 font-semibold text-emerald-400">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 pulse-dot"></span>
+          <span>Google 帳號管理員綁定防護</span>
+        </div>
+        <p class="text-[11px] text-slate-400 leading-relaxed">
+          系統已開啟最高資安等級保護，非授權之第三方帳號將被自動阻擋，無法檢視持股倉、損益、交易日誌與研究備註。
+        </p>
+      </div>
+
+      <!-- Google Sign In Button Container -->
+      <div class="space-y-3">
+        <div class="text-xs font-semibold text-slate-300">請使用授權的管理員 Google 帳號登入：</div>
+        
+        <div id="googleBtnContainer" class="flex flex-col items-center justify-center min-h-[46px] gap-2">
+          <div id="googleSignInBtn" class="flex justify-center"></div>
+        </div>
+
+        <!-- Alert Notification Box -->
+        <div id="authAlertBox" class="hidden p-3 rounded-xl text-xs text-left border"></div>
+      </div>
+
+      <!-- Emergency Master PIN Login Option -->
+      <div class="pt-4 border-t border-slate-800 space-y-2.5">
+        <button type="button" onclick="togglePinLogin()" id="btnShowPinLogin" class="text-xs text-indigo-400 hover:text-indigo-300 underline font-medium">
+          🔑 使用管理安全授權碼 (Master PIN) 登入
+        </button>
+
+        <div id="pinLoginBox" class="hidden space-y-2 pt-1 text-left">
+          <label for="masterPinInput" class="block text-[11px] text-slate-400 font-semibold">輸入管理安全碼 (預設：8888)：</label>
+          <div class="flex gap-2">
+            <input type="password" id="masterPinInput" placeholder="請輸入安全碼" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500" />
+            <button type="button" onclick="submitPinLogin()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-sm">
+              解鎖
+            </button>
+          </div>
+          <p class="text-[10px] text-slate-500">※ 離線環境或本機預覽未連線 Google 時之備援驗證通道。</p>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Top Header Navigation -->
   <header class="sticky top-0 z-30 bg-slate-900/95 backdrop-blur border-b border-slate-800 px-4 lg:px-6 py-3">
@@ -117,6 +181,27 @@
         <button type="button" id="btnOpenAddStockModal" onclick="openStockModal()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1">
           <span>＋ 新增標的</span>
         </button>
+        <button type="button" id="btnOpenBrokerModal" onclick="openBrokerSettingsModal()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 transition flex items-center gap-1.5 shadow-sm" title="設定各券商電子手續費折讓率與稅率">
+          <span>⚙️ 券商費率</span>
+        </button>
+        <!-- Security & Admin Auth Badge in Header -->
+        <div id="headerAuthBadge" class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 px-2.5 py-1 rounded-xl text-xs">
+          <div id="headerAuthAvatar" class="w-6 h-6 rounded-full bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center text-[10px] font-bold text-white overflow-hidden">
+            🛡️
+          </div>
+          <div class="hidden md:flex flex-col text-left leading-tight">
+            <span id="headerAuthName" class="text-[11px] font-semibold text-slate-200 truncate max-w-[120px]">未登入</span>
+            <span id="headerAuthRole" class="text-[9px] text-slate-400 flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>安全保護中
+            </span>
+          </div>
+          <button type="button" onclick="openSecurityModal()" class="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition" title="資安管理與授權清單">
+            🛡️
+          </button>
+          <button type="button" onclick="logoutSecurity()" class="p-1 text-slate-400 hover:text-rose-400 rounded hover:bg-slate-800 transition" title="登出並鎖定系統">
+            🚪
+          </button>
+        </div>
       </div>
     </div>
   </header>
@@ -128,6 +213,31 @@
     <!-- VIEW 1: PORTFOLIO & LOCKED STOCKS OVERVIEW -->
     <!-- ========================================== -->
     <section id="viewPortfolio" class="space-y-5">
+      <!-- Broker Distribution Quick Bar -->
+      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-slate-400 font-semibold flex items-center gap-1">
+            <span>🏢 下單券商分佈：</span>
+          </span>
+          <button type="button" onclick="setBrokerFilter('ALL')" id="brokerFilterAll" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-600 text-white transition shadow-sm">
+            全部 (<span id="brokerTotalCount">16</span>檔)
+          </button>
+          <button type="button" onclick="setBrokerFilter('元大證券')" id="brokerFilterYuanta" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-sky-300 hover:bg-slate-700 border border-sky-500/30 transition flex items-center gap-1">
+            <span>元大證券</span>
+            <span class="px-1.5 py-0.2 rounded bg-sky-500/20 text-[10px] text-sky-300"><span id="brokerYuantaCount">12</span>檔・6折</span>
+          </button>
+          <button type="button" onclick="setBrokerFilter('富邦證券')" id="brokerFilterFubon" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-amber-300 hover:bg-slate-700 border border-amber-500/30 transition flex items-center gap-1">
+            <span>富邦證券</span>
+            <span class="px-1.5 py-0.2 rounded bg-amber-500/20 text-[10px] text-amber-300"><span id="brokerFubonCount">4</span>檔・1.8折</span>
+          </button>
+        </div>
+        <div class="flex items-center gap-2 text-[11px] text-slate-400">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span>富邦預設標的：<strong>2344 華邦電、3689 湧德、3141 晶宏、8109 博大</strong>（手續費1.8折）</span>
+          <button type="button" onclick="openBrokerSettingsModal()" class="text-amber-400 hover:text-amber-300 underline font-medium">調整費率 ⚙️</button>
+        </div>
+      </div>
+
       <!-- Category Switcher Bar -->
       <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div class="flex flex-wrap items-center gap-2">
@@ -158,10 +268,13 @@
             <option value="董監大買追蹤">👑 董監大買追蹤</option>
             <option value="高殖利率價值">💰 高殖利率價值</option>
           </select>
-          <label class="flex items-center gap-1.5 text-xs text-slate-300 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl cursor-pointer">
+          <label class="flex items-center gap-1.5 text-xs text-slate-300 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl cursor-pointer hover:border-slate-700 transition" title="依元大(6折)、富邦(1.8折)與0.3%證交稅精密扣除">
             <input type="checkbox" id="toggleIncludeTax" onchange="renderPortfolioTable()" checked class="rounded border-slate-600 text-indigo-600 focus:ring-0" />
-            <span>含稅費 (0.4425%)</span>
+            <span id="toggleTaxLabel" class="font-medium text-slate-200">含稅費 (依券商折讓實質稅率)</span>
           </label>
+          <button type="button" onclick="openBrokerSettingsModal()" title="調整下單券商折讓率與稅率" class="px-2.5 py-1.5 rounded-xl text-xs bg-slate-950 hover:bg-slate-800 text-amber-300 border border-slate-800 flex items-center gap-1 transition">
+            <span>⚙️ 費率設定</span>
+          </button>
         </div>
       </div>
 
@@ -234,7 +347,7 @@
           <table class="w-full text-left border-collapse min-w-[1380px]">
             <thead>
               <tr class="bg-slate-950/90 border-b border-slate-800 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                <th class="py-3 px-3">標的代號 / 市場 / 標籤</th>
+                <th class="py-3 px-3">標的代號 / 下單券商 / 標籤</th>
                 <th class="py-3 px-2.5 text-right">最新價 / 漲跌幅</th>
                 <th class="py-3 px-2.5 text-right" id="thPositionCol">持有張數 / 買進均價</th>
                 <th class="py-3 px-2.5 text-right" id="thPnlCol">未實現損益 / 報酬率</th>
@@ -921,6 +1034,17 @@
           </select>
         </div>
         <div>
+          <label for="formBroker" class="block text-slate-400 mb-1">下單券商 *</label>
+          <select id="formBroker" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white">
+            <option value="元大證券">元大證券 (預設手續費6折)</option>
+            <option value="富邦證券">富邦證券 (預設手續費1.8折)</option>
+            <option value="國泰綜合證券">國泰綜合證券 (2.8折)</option>
+            <option value="永豐金證券">永豐金證券 (2折)</option>
+            <option value="凱基證券">凱基證券 (6折)</option>
+            <option value="其他券商">其他券商 (5折)</option>
+          </select>
+        </div>
+        <div>
           <label for="formStrategyTag" class="block text-slate-400 mb-1">策略標籤</label>
           <input type="text" id="formStrategyTag" placeholder="例如：CB異動鎖單 / AI伺服器核心" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
         </div>
@@ -972,6 +1096,198 @@
       <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
         <button type="button" onclick="closeStockModal()" class="px-4 py-2 rounded-xl text-xs bg-slate-800 hover:bg-slate-700 text-slate-300">取消</button>
         <button type="button" onclick="saveStockFromModal()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white">💾 儲存標的資料</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: BROKER & TAX SETTINGS (⚙️ 券商費率與稅率) -->
+  <!-- ========================================== -->
+  <div id="brokerSettingsModal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-amber-500/40 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto custom-scrollbar">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">⚙️</span>
+          <div>
+            <h3 class="text-base font-bold text-white">下單券商折讓率與實質稅率設定</h3>
+            <p class="text-xs text-slate-400">校準未實現損益與券商 App（元大 878,555 vs 富邦）完全吻合</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeBrokerSettingsModal()" class="text-slate-400 hover:text-white text-sm px-2 py-1 rounded-lg bg-slate-800">✕</button>
+      </div>
+
+      <!-- Calculation Formula Explanation Box -->
+      <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300 space-y-1.5">
+        <div class="font-semibold text-amber-300 flex items-center gap-1">
+          <span>💡 券商損益計算原則（解決 883,420 vs 878,555 差異）：</span>
+        </div>
+        <p class="text-[11px] text-slate-400 leading-relaxed">
+          券商庫存「買進成本」在成交時已結算買進手續費，未實現損益僅需預扣<strong>「賣出手續費 (0.1425% × 券商折讓)」</strong>與<strong>「賣出證券交易稅 (0.3%)」</strong>。
+        </p>
+      </div>
+
+      <div class="space-y-4 text-xs">
+        <!-- Yuanta Settings -->
+        <div class="p-4 rounded-xl bg-slate-950/60 border border-sky-500/30 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-sky-300 flex items-center gap-1.5">
+              <span>🔵 元大證券（適用 12 檔股票）</span>
+            </span>
+            <span class="text-[10px] text-sky-400">標準電子單 6 折</span>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label for="cfgYuantaDiscount" class="block text-slate-400 mb-1">電子下單手續費折讓（%）</label>
+              <div class="flex items-center gap-1.5">
+                <input type="number" id="cfgYuantaDiscount" value="60" min="1" max="100" step="1" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-semibold" />
+                <span class="text-slate-400">% (60=6折)</span>
+              </div>
+            </div>
+            <div>
+              <label for="cfgYuantaMinFee" class="block text-slate-400 mb-1">每筆最低手續費（元）</label>
+              <input type="number" id="cfgYuantaMinFee" value="20" min="1" max="50" step="1" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Fubon Settings -->
+        <div class="p-4 rounded-xl bg-slate-950/60 border border-amber-500/30 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-amber-300 flex items-center gap-1.5">
+              <span>🟠 富邦證券（2344, 3689, 3141, 8109 共 4 檔）</span>
+            </span>
+            <span class="text-[10px] text-amber-400">新開戶/數位戶 1.8 折</span>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label for="cfgFubonDiscount" class="block text-slate-400 mb-1">電子下單手續費折讓（%）</label>
+              <div class="flex items-center gap-1.5">
+                <input type="number" id="cfgFubonDiscount" value="18" min="1" max="100" step="1" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-semibold" />
+                <span class="text-slate-400">% (18=1.8折)</span>
+              </div>
+            </div>
+            <div>
+              <label for="cfgFubonMinFee" class="block text-slate-400 mb-1">每筆最低手續費（元）</label>
+              <input type="number" id="cfgFubonMinFee" value="1" min="1" max="50" step="1" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Tax & Cost Base Settings -->
+        <div class="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-3">
+          <div class="font-semibold text-slate-300">🏛️ 證券交易稅與買進成本認列設定</div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label for="cfgTaxRate" class="block text-slate-400 mb-1">賣出證券交易稅率（%）</label>
+              <div class="flex items-center gap-1.5">
+                <input type="number" id="cfgTaxRate" value="0.3" min="0.05" max="1.0" step="0.05" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-semibold" />
+                <span class="text-slate-400">% (標準0.3%)</span>
+              </div>
+            </div>
+            <div>
+              <label for="cfgOtherDiscount" class="block text-slate-400 mb-1">其他券商預設折讓（%）</label>
+              <div class="flex items-center gap-1.5">
+                <input type="number" id="cfgOtherDiscount" value="50" min="1" max="100" step="1" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+                <span class="text-slate-400">% (50=5折)</span>
+              </div>
+            </div>
+          </div>
+
+          <label class="flex items-center gap-2 text-slate-300 pt-2 cursor-pointer">
+            <input type="checkbox" id="cfgCostIncludesFee" checked class="rounded border-slate-600 text-amber-500 focus:ring-0" />
+            <span>買進均價已內含買進手續費（券商軟體標準，勾選後不再重複扣抵買進手續費）</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between pt-3 border-t border-slate-800">
+        <button type="button" onclick="resetBrokerSettingsToDefault()" class="px-3 py-2 rounded-xl text-xs bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition">
+          ↺ 還原預設值 (元大6折/富邦1.8折)
+        </button>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="closeBrokerSettingsModal()" class="px-4 py-2 rounded-xl text-xs bg-slate-800 hover:bg-slate-700 text-slate-300">取消</button>
+          <button type="button" onclick="saveBrokerSettings()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold shadow-lg shadow-amber-500/20">
+            💾 儲存並重新計算損益
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: SECURITY & ACCESS CONTROL (🛡️ 資安管理) -->
+  <!-- ========================================== -->
+  <div id="securityModal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-indigo-500/40 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto custom-scrollbar">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🛡️</span>
+          <div>
+            <h3 class="text-base font-bold text-white">資訊安全與管理帳號授權管理</h3>
+            <p class="text-xs text-slate-400">綁定 Google 帳號與管理員白名單防護</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeSecurityModal()" class="text-slate-400 hover:text-white text-sm px-2 py-1 rounded-lg bg-slate-800">✕</button>
+      </div>
+
+      <!-- Current Session Info Card -->
+      <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <div id="modalUserAvatar" class="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center text-sm font-bold text-white overflow-hidden">
+            🛡️
+          </div>
+          <div>
+            <div id="modalUserName" class="text-xs font-bold text-white">安全管理員</div>
+            <div id="modalUserEmail" class="text-[11px] text-slate-400">已登入・受白名單防護</div>
+          </div>
+        </div>
+        <button type="button" onclick="logoutSecurity()" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/30 hover:bg-rose-500/30 transition">
+          🚪 立即登出並鎖定
+        </button>
+      </div>
+
+      <!-- Whitelist Management -->
+      <div class="space-y-3 text-xs">
+        <div class="flex items-center justify-between">
+          <label class="font-bold text-slate-200">👑 授權管理員 Google 帳號清單 (白名單)：</label>
+          <span class="text-[11px] text-slate-400">僅清單內帳號可登入查看持股</span>
+        </div>
+
+        <div class="flex gap-2">
+          <input type="email" id="newAdminEmailInput" placeholder="輸入 Google 帳號 Email (例如：user@gmail.com)" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500" />
+          <button type="button" onclick="addAuthorizedEmail()" class="px-3.5 py-2 rounded-xl font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition flex items-center gap-1 shadow-sm">
+            <span>＋ 加入</span>
+          </button>
+        </div>
+
+        <div id="authorizedEmailsList" class="space-y-1.5 max-h-40 overflow-y-auto custom-scrollbar p-2 rounded-xl bg-slate-950 border border-slate-800">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Google OAuth Client ID Configuration -->
+      <div class="space-y-2 pt-2 border-t border-slate-800 text-xs">
+        <label for="cfgGoogleClientId" class="block font-bold text-slate-200">🔑 Google OAuth 2.0 Web Client ID：</label>
+        <input type="text" id="cfgGoogleClientId" placeholder="例如：xxxxxxxxxxxx.apps.googleusercontent.com" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono text-[11px] focus:outline-none focus:border-indigo-500" />
+        <p class="text-[10px] text-slate-500">
+          ※ 預設使用展示用 Client ID。您可前往 Google Cloud Console 建立 Web 用戶端 ID 並在此填入，以啟用個人專屬一鍵登入。
+        </p>
+      </div>
+
+      <!-- Master Recovery PIN Setting -->
+      <div class="space-y-2 pt-2 border-t border-slate-800 text-xs">
+        <label for="cfgMasterPin" class="block font-bold text-slate-200">🛡️ 管理員備援安全碼 (Master Recovery PIN)：</label>
+        <div class="flex gap-2">
+          <input type="password" id="cfgMasterPin" value="8888" placeholder="輸入新安全碼" class="w-48 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500" />
+          <span class="text-slate-400 py-2 text-[11px]">（預設為 8888，供本機離線或網路異常時緊急登入）</span>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+        <button type="button" onclick="closeSecurityModal()" class="px-4 py-2 rounded-xl text-xs bg-slate-800 hover:bg-slate-700 text-slate-300">取消</button>
+        <button type="button" onclick="saveSecuritySettings()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20">
+          💾 儲存資安設定
+        </button>
       </div>
     </div>
   </div>
@@ -1833,14 +2149,37 @@
     ];
 
     // =========================================================================
-    // STATE MANAGEMENT
+    // STATE MANAGEMENT, BROKER SETTINGS & SECURITY CONFIG
     // =========================================================================
     const STORAGE_KEY = 'ai_inv_station_stocks_v2_5';
     const TRADES_STORAGE_KEY = 'ai_inv_station_trades_v1';
+    const BROKER_SETTINGS_KEY = 'ai_stock_broker_settings_v1';
+    const SECURITY_CONFIG_KEY = 'ai_stock_security_config_v1';
+    const SECURITY_SESSION_KEY = 'ai_stock_auth_session_v1';
+
+    const DEFAULT_BROKER_SETTINGS = {
+      yuantaDiscount: 0.60, // 元大電子單 6折
+      yuantaMinFee: 20,
+      fubonDiscount: 0.18,  // 富邦電子單 1.8折
+      fubonMinFee: 1,
+      otherDiscount: 0.50,  // 其他券商 5折
+      taxRate: 0.003,       // 賣出證交稅 0.3%
+      costIncludesFee: true // 買進均價已含手續費 (券商標準)
+    };
+
+    const DEFAULT_SECURITY_CONFIG = {
+      authorizedEmails: ['admin@example.com'],
+      masterPin: '8888',
+      googleClientId: '108849646877-展示用專屬Client-ID.apps.googleusercontent.com'
+    };
 
     let state = {
       mainView: 'portfolio',
       categoryFilter: 'holding',
+      brokerFilter: 'ALL',
+      currentUser: null,
+      brokerSettings: Object.assign({}, DEFAULT_BROKER_SETTINGS),
+      security: Object.assign({}, DEFAULT_SECURITY_CONFIG),
       holderChartMode: 'both',
       activeStockId: '2383',
       editingStockId: null,
@@ -1889,6 +2228,13 @@
         state.stocks = JSON.parse(JSON.stringify(DEFAULT_STOCKS));
       }
 
+      // 自動校準與補齊每檔標的的下單券商 (富邦: 2344, 3689, 3141, 8109，其餘元大)
+      state.stocks.forEach(s => {
+        if (!s.broker) {
+          s.broker = ['2344', '3689', '3141', '8109'].includes(String(s.id)) ? '富邦證券' : '元大證券';
+        }
+      });
+
       // 2. 載入交易日誌覆盤資料庫
       try {
         const rawTrades = localStorage.getItem(TRADES_STORAGE_KEY);
@@ -1905,12 +2251,449 @@
       } catch (e) {
         state.trades = JSON.parse(JSON.stringify(DEFAULT_TRADES));
       }
+
+      // 3. 載入下單券商折讓率與稅率設定
+      try {
+        const rawBroker = localStorage.getItem(BROKER_SETTINGS_KEY);
+        if (rawBroker) {
+          state.brokerSettings = Object.assign({}, DEFAULT_BROKER_SETTINGS, JSON.parse(rawBroker));
+        } else {
+          state.brokerSettings = Object.assign({}, DEFAULT_BROKER_SETTINGS);
+        }
+      } catch (e) {
+        state.brokerSettings = Object.assign({}, DEFAULT_BROKER_SETTINGS);
+      }
+
+      // 4. 載入資訊安全與管理帳號授權設定
+      try {
+        const rawSec = localStorage.getItem(SECURITY_CONFIG_KEY);
+        if (rawSec) {
+          state.security = Object.assign({}, DEFAULT_SECURITY_CONFIG, JSON.parse(rawSec));
+        } else {
+          state.security = Object.assign({}, DEFAULT_SECURITY_CONFIG);
+        }
+      } catch (e) {
+        state.security = Object.assign({}, DEFAULT_SECURITY_CONFIG);
+      }
     }
 
     function saveState() {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state.stocks));
         localStorage.setItem(TRADES_STORAGE_KEY, JSON.stringify(state.trades));
+      } catch (e) {}
+    }
+
+    // =========================================================================
+    // BROKER & REALISTIC TAX RATE CALCULATOR
+    // =========================================================================
+    function calculateStockTaxAndFee(s, includeTax = true) {
+      if (!includeTax) {
+        return { sellFee: 0, sellTax: 0, buyFee: 0, total: 0, discountRate: 0, brokerName: s.broker || '元大證券' };
+      }
+      const mv = (s.shares || 0) * (s.price || 0);
+      const broker = s.broker || (['2344', '3689', '3141', '8109'].includes(String(s.id)) ? '富邦證券' : '元大證券');
+
+      let discount = 0.60;
+      let minFee = 20;
+      if (broker.includes('富邦')) {
+        discount = Number(state.brokerSettings?.fubonDiscount ?? 0.18);
+        minFee = Number(state.brokerSettings?.fubonMinFee ?? 1);
+      } else if (broker.includes('元大')) {
+        discount = Number(state.brokerSettings?.yuantaDiscount ?? 0.60);
+        minFee = Number(state.brokerSettings?.yuantaMinFee ?? 20);
+      } else {
+        discount = Number(state.brokerSettings?.otherDiscount ?? 0.50);
+        minFee = 20;
+      }
+
+      const rawSellFee = mv * 0.001425 * discount;
+      const sellFee = mv > 0 ? Math.max(minFee, Math.floor(rawSellFee)) : 0;
+      const taxRate = Number(state.brokerSettings?.taxRate ?? 0.003);
+      const sellTax = Math.floor(mv * taxRate);
+
+      let buyFee = 0;
+      if (state.brokerSettings?.costIncludesFee === false) {
+        const cost = (s.shares || 0) * (s.avgCost || 0);
+        buyFee = cost > 0 ? Math.max(minFee, Math.floor(cost * 0.001425 * discount)) : 0;
+      }
+
+      return {
+        sellFee,
+        sellTax,
+        buyFee,
+        total: sellFee + sellTax + buyFee,
+        discountRate: discount,
+        brokerName: broker
+      };
+    }
+
+    // =========================================================================
+    // BROKER SETTINGS MODAL & FILTER CONTROLLERS
+    // =========================================================================
+    function openBrokerSettingsModal() {
+      const m = document.getElementById('brokerSettingsModal');
+      document.getElementById('cfgYuantaDiscount').value = Math.round((state.brokerSettings.yuantaDiscount ?? 0.60) * 100);
+      document.getElementById('cfgYuantaMinFee').value = state.brokerSettings.yuantaMinFee ?? 20;
+      document.getElementById('cfgFubonDiscount').value = Math.round((state.brokerSettings.fubonDiscount ?? 0.18) * 100);
+      document.getElementById('cfgFubonMinFee').value = state.brokerSettings.fubonMinFee ?? 1;
+      document.getElementById('cfgOtherDiscount').value = Math.round((state.brokerSettings.otherDiscount ?? 0.50) * 100);
+      document.getElementById('cfgTaxRate').value = ((state.brokerSettings.taxRate ?? 0.003) * 100).toFixed(2);
+      document.getElementById('cfgCostIncludesFee').checked = state.brokerSettings.costIncludesFee ?? true;
+
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    }
+
+    function closeBrokerSettingsModal() {
+      const m = document.getElementById('brokerSettingsModal');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    }
+
+    function saveBrokerSettings() {
+      const yuantaDisc = (parseFloat(document.getElementById('cfgYuantaDiscount').value) || 60) / 100;
+      const yuantaMin = parseFloat(document.getElementById('cfgYuantaMinFee').value) || 20;
+      const fubonDisc = (parseFloat(document.getElementById('cfgFubonDiscount').value) || 18) / 100;
+      const fubonMin = parseFloat(document.getElementById('cfgFubonMinFee').value) || 1;
+      const otherDisc = (parseFloat(document.getElementById('cfgOtherDiscount').value) || 50) / 100;
+      const taxRate = (parseFloat(document.getElementById('cfgTaxRate').value) || 0.3) / 100;
+      const costInc = document.getElementById('cfgCostIncludesFee').checked;
+
+      state.brokerSettings = {
+        yuantaDiscount: yuantaDisc,
+        yuantaMinFee: yuantaMin,
+        fubonDiscount: fubonDisc,
+        fubonMinFee: fubonMin,
+        otherDiscount: otherDisc,
+        taxRate: taxRate,
+        costIncludesFee: costInc
+      };
+
+      try {
+        localStorage.setItem(BROKER_SETTINGS_KEY, JSON.stringify(state.brokerSettings));
+      } catch (e) {}
+
+      closeBrokerSettingsModal();
+      renderPortfolioTable();
+      showToast('✅ 券商費率與實質稅率已更新，持股損益已即時精算！');
+    }
+
+    function resetBrokerSettingsToDefault() {
+      state.brokerSettings = Object.assign({}, DEFAULT_BROKER_SETTINGS);
+      try {
+        localStorage.setItem(BROKER_SETTINGS_KEY, JSON.stringify(state.brokerSettings));
+      } catch (e) {}
+      openBrokerSettingsModal();
+      renderPortfolioTable();
+      showToast('已還原為元大6折、富邦1.8折、0.3%標準稅率設定！');
+    }
+
+    function setBrokerFilter(broker) {
+      state.brokerFilter = broker;
+      const allBtn = document.getElementById('brokerFilterAll');
+      const yuantaBtn = document.getElementById('brokerFilterYuanta');
+      const fubonBtn = document.getElementById('brokerFilterFubon');
+
+      if (allBtn) {
+        allBtn.className = broker === 'ALL'
+          ? 'px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-600 text-white transition shadow-sm'
+          : 'px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition';
+      }
+      if (yuantaBtn) {
+        yuantaBtn.className = broker === '元大證券'
+          ? 'px-2.5 py-1 rounded-lg text-xs font-semibold bg-sky-600 text-white transition shadow-sm flex items-center gap-1'
+          : 'px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-sky-300 hover:bg-slate-700 border border-sky-500/30 transition flex items-center gap-1';
+      }
+      if (fubonBtn) {
+        fubonBtn.className = broker === '富邦證券'
+          ? 'px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-600 text-white transition shadow-sm flex items-center gap-1'
+          : 'px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-amber-300 hover:bg-slate-700 border border-amber-500/30 transition flex items-center gap-1';
+      }
+
+      renderPortfolioTable();
+    }
+
+    // =========================================================================
+    // GOOGLE AUTHENTICATION & ACCESS CONTROL SECURITY GATE
+    // =========================================================================
+    function checkAuthOnStartup() {
+      try {
+        const sessionRaw = sessionStorage.getItem(SECURITY_SESSION_KEY) || localStorage.getItem(SECURITY_SESSION_KEY);
+        if (sessionRaw) {
+          const user = JSON.parse(sessionRaw);
+          if (user && user.email) {
+            const isAuthorized = user.method === 'pin' ||
+              state.security.authorizedEmails.some(ae => ae.toLowerCase().trim() === user.email.toLowerCase().trim()) ||
+              state.security.authorizedEmails.length === 0;
+            if (isAuthorized) {
+              unlockSecurityGate(user);
+              return;
+            }
+          }
+        }
+      } catch (e) {}
+      lockSecurityGate();
+    }
+
+    function initGoogleAuth() {
+      if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+        try {
+          google.accounts.id.initialize({
+            client_id: state.security.googleClientId || '108849646877-展示用專屬Client-ID.apps.googleusercontent.com',
+            callback: handleGoogleCredentialResponse,
+            auto_select: false
+          });
+          const btn = document.getElementById('googleSignInBtn');
+          if (btn) {
+            btn.innerHTML = '';
+            google.accounts.id.renderButton(btn, {
+              theme: 'filled_blue',
+              size: 'large',
+              shape: 'pill',
+              text: 'continue_with',
+              width: 280
+            });
+          }
+        } catch (e) {
+          console.warn('Google Identity Client Init:', e);
+        }
+      }
+    }
+
+    function parseJwt(token) {
+      try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function handleGoogleCredentialResponse(response) {
+      if (!response || !response.credential) {
+        showAuthAlert('無法取得 Google 登入認證憑證！', 'error');
+        return;
+      }
+      const payload = parseJwt(response.credential);
+      if (!payload || !payload.email) {
+        showAuthAlert('無法讀取 Google 帳號 Email，請重試！', 'error');
+        return;
+      }
+      const email = payload.email.toLowerCase().trim();
+
+      const isInitialSetup = state.security.authorizedEmails.length === 0 ||
+        (state.security.authorizedEmails.length === 1 && state.security.authorizedEmails[0] === 'admin@example.com');
+      if (isInitialSetup) {
+        state.security.authorizedEmails = [email];
+        saveSecurityConfig();
+        showToast(`👑 系統已自動將 Google 帳號 ${email} 綁定為第一位系統最高管理員！`);
+      }
+
+      const isAuthorized = state.security.authorizedEmails.some(ae => ae.toLowerCase().trim() === email);
+      if (isAuthorized) {
+        const user = {
+          email: payload.email,
+          name: payload.name || payload.email.split('@')[0],
+          picture: payload.picture || '',
+          method: 'google',
+          time: new Date().toISOString()
+        };
+        sessionStorage.setItem(SECURITY_SESSION_KEY, JSON.stringify(user));
+        unlockSecurityGate(user);
+        showToast(`✅ 歡迎回來，管理員 ${user.name}！身分驗證通過。`);
+      } else {
+        showAuthAlert(`🚫 存取拒絕：帳號 ${email} 未獲授權！\n此系統受最高資安防護，非授權人員無法檢視或使用投資數據。`, 'error');
+      }
+    }
+
+    function togglePinLogin() {
+      const box = document.getElementById('pinLoginBox');
+      box.classList.toggle('hidden');
+    }
+
+    function submitPinLogin() {
+      const pin = (document.getElementById('masterPinInput')?.value || '').trim();
+      if (!pin) {
+        showAuthAlert('請輸入管理安全碼！', 'error');
+        return;
+      }
+      if (pin === state.security.masterPin) {
+        const user = {
+          email: 'master-pin@admin.internal',
+          name: 'PIN 授權管理員',
+          picture: '',
+          method: 'pin',
+          time: new Date().toISOString()
+        };
+        sessionStorage.setItem(SECURITY_SESSION_KEY, JSON.stringify(user));
+        unlockSecurityGate(user);
+        showToast('🔑 管理安全授權碼驗證通過！');
+      } else {
+        showAuthAlert('❌ 安全授權碼錯誤，請重新輸入！', 'error');
+      }
+    }
+
+    function unlockSecurityGate(user) {
+      state.currentUser = user;
+      const gate = document.getElementById('securityGate');
+      if (gate) {
+        gate.classList.add('hidden');
+        gate.style.display = 'none';
+      }
+      updateHeaderAuthBadge(user);
+    }
+
+    function lockSecurityGate() {
+      sessionStorage.removeItem(SECURITY_SESSION_KEY);
+      state.currentUser = null;
+      const gate = document.getElementById('securityGate');
+      if (gate) {
+        gate.classList.remove('hidden');
+        gate.style.display = 'flex';
+      }
+      updateHeaderAuthBadge(null);
+      const alertBox = document.getElementById('authAlertBox');
+      if (alertBox) alertBox.classList.add('hidden');
+      initGoogleAuth();
+    }
+
+    function logoutSecurity() {
+      lockSecurityGate();
+      showToast('🔒 已安全登出並鎖定投資資訊站。');
+    }
+
+    function showAuthAlert(msg, type = 'error') {
+      const box = document.getElementById('authAlertBox');
+      if (!box) return;
+      box.classList.remove('hidden');
+      if (type === 'error') {
+        box.className = 'p-3 rounded-xl text-xs text-left bg-rose-500/20 text-rose-300 border border-rose-500/30 whitespace-pre-line';
+      } else {
+        box.className = 'p-3 rounded-xl text-xs text-left bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 whitespace-pre-line';
+      }
+      box.textContent = msg;
+    }
+
+    function updateHeaderAuthBadge(user) {
+      const nameEl = document.getElementById('headerAuthName');
+      const roleEl = document.getElementById('headerAuthRole');
+      const avatarEl = document.getElementById('headerAuthAvatar');
+      if (!user) {
+        if (nameEl) nameEl.textContent = '未登入';
+        if (roleEl) roleEl.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>安全保護中';
+        if (avatarEl) avatarEl.innerHTML = '🛡️';
+        return;
+      }
+      if (nameEl) nameEl.textContent = user.name || user.email;
+      if (roleEl) roleEl.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>管理員';
+      if (avatarEl) {
+        if (user.picture) {
+          avatarEl.innerHTML = `<img src="${user.picture}" alt="avatar" class="w-full h-full object-cover" />`;
+        } else {
+          avatarEl.innerHTML = user.method === 'pin' ? '🔑' : '👑';
+        }
+      }
+    }
+
+    function openSecurityModal() {
+      const modal = document.getElementById('securityModal');
+      const clientIdInput = document.getElementById('cfgGoogleClientId');
+      const pinInput = document.getElementById('cfgMasterPin');
+      const modalUserName = document.getElementById('modalUserName');
+      const modalUserEmail = document.getElementById('modalUserEmail');
+      const modalUserAvatar = document.getElementById('modalUserAvatar');
+
+      if (state.currentUser) {
+        modalUserName.textContent = state.currentUser.name;
+        modalUserEmail.textContent = state.currentUser.email + ' (' + (state.currentUser.method === 'google' ? 'Google 帳號' : 'Master PIN') + ')';
+        if (state.currentUser.picture) {
+          modalUserAvatar.innerHTML = `<img src="${state.currentUser.picture}" alt="avatar" class="w-full h-full object-cover" />`;
+        } else {
+          modalUserAvatar.innerHTML = state.currentUser.method === 'pin' ? '🔑' : '👑';
+        }
+      }
+
+      clientIdInput.value = state.security.googleClientId || '';
+      pinInput.value = state.security.masterPin || '8888';
+      renderAuthorizedEmailsList();
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeSecurityModal() {
+      const modal = document.getElementById('securityModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function renderAuthorizedEmailsList() {
+      const listEl = document.getElementById('authorizedEmailsList');
+      if (!listEl) return;
+      if (!state.security.authorizedEmails || state.security.authorizedEmails.length === 0) {
+        listEl.innerHTML = `<div class="text-slate-500 py-2 text-center text-xs">尚未設定授權 Email，首次登入之 Google 帳號將自動綁定為管理員。</div>`;
+        return;
+      }
+      listEl.innerHTML = state.security.authorizedEmails.map((email, idx) => `
+        <div class="flex items-center justify-between py-1.5 px-3 rounded-lg bg-slate-900 border border-slate-800 text-xs">
+          <div class="flex items-center gap-2">
+            <span class="text-indigo-400">👤</span>
+            <span class="font-mono text-slate-200">${email}</span>
+            ${idx === 0 ? '<span class="px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 text-[10px] font-bold">主管理員</span>' : ''}
+          </div>
+          <button type="button" onclick="removeAuthorizedEmail(${idx})" class="text-rose-400 hover:text-rose-300 px-1.5 py-0.5 rounded hover:bg-rose-500/20 transition text-[11px]">✕ 移除</button>
+        </div>
+      `).join('');
+    }
+
+    function addAuthorizedEmail() {
+      const input = document.getElementById('newAdminEmailInput');
+      const val = (input?.value || '').trim().toLowerCase();
+      if (!val || !val.includes('@')) {
+        showToast('請輸入有效的 Google Email 帳號！');
+        return;
+      }
+      if (state.security.authorizedEmails.includes(val)) {
+        showToast('該帳號已在授權清單中！');
+        return;
+      }
+      state.security.authorizedEmails.push(val);
+      input.value = '';
+      saveSecurityConfig();
+      renderAuthorizedEmailsList();
+      showToast(`已成功將 ${val} 加入管理員授權清單！`);
+    }
+
+    function removeAuthorizedEmail(idx) {
+      if (state.security.authorizedEmails.length <= 1) {
+        showToast('安全提示：系統至少須保留一個授權管理帳號！');
+        return;
+      }
+      const removed = state.security.authorizedEmails.splice(idx, 1)[0];
+      saveSecurityConfig();
+      renderAuthorizedEmailsList();
+      showToast(`已移除 ${removed} 授權！`);
+    }
+
+    function saveSecuritySettings() {
+      const clientId = (document.getElementById('cfgGoogleClientId')?.value || '').trim();
+      const pin = (document.getElementById('cfgMasterPin')?.value || '').trim();
+      if (clientId) state.security.googleClientId = clientId;
+      if (pin) state.security.masterPin = pin;
+      saveSecurityConfig();
+      closeSecurityModal();
+      initGoogleAuth();
+      showToast('✅ 資安與管理帳號設定已成功儲存！');
+    }
+
+    function saveSecurityConfig() {
+      try {
+        localStorage.setItem(SECURITY_CONFIG_KEY, JSON.stringify(state.security));
       } catch (e) {}
     }
 
@@ -2106,6 +2889,7 @@
       id: ['股票代號', '證券代號', '代號', '代碼', 'code', 'id', 'ticker', 'symbol'],
       name: ['股票名稱', '證券名稱', '標的名稱', '名稱', 'name'],
       category: ['分類', '類別', '帳戶分類', 'category', 'type'],
+      broker: ['下單券商', '券商', '證券商', '帳號券商', '券商名稱', 'broker', 'brokerage'],
       shares: ['持有股數', '庫存股數', '股數', '持有張數', '張數', 'shares', 'qty', 'volume'],
       avgCost: ['買進均價', '買進成本', '成本均價', '成本價', '成本', 'avgcost', 'cost', 'buyprice'],
       price: ['最新價', '現價', '收盤價', '目前價格', 'price', 'close'],
@@ -2213,6 +2997,11 @@
         const catRaw = mapping.category !== undefined ? (cols[mapping.category] || '') : '';
         const category = (catRaw.includes('鎖') || catRaw.toLowerCase().includes('lock') || catRaw.toLowerCase().includes('watch')) ? 'locked' : 'holding';
 
+        let broker = mapping.broker !== undefined ? (cols[mapping.broker] || '').trim() : '';
+        if (!broker) {
+          broker = ['2344', '3689', '3141', '8109'].includes(String(sid)) ? '富邦證券' : '元大證券';
+        }
+
         let shares = mapping.shares !== undefined ? parseFloat(cols[mapping.shares].replace(/,/g, '')) || 0 : (category === 'locked' ? 0 : 1000);
         if (headers[mapping.shares] && headers[mapping.shares].includes('張') && shares <= 1000) {
           shares = shares * 1000;
@@ -2240,6 +3029,7 @@
           const s = state.stocks[existingIdx];
           s.name = name;
           s.category = category;
+          s.broker = broker || s.broker || (['2344', '3689', '3141', '8109'].includes(String(sid)) ? '富邦證券' : '元大證券');
           s.shares = shares;
           s.avgCost = avgCost;
           if (mapping.price !== undefined) s.price = price;
@@ -2264,6 +3054,7 @@
             name,
             market: (sid.startsWith('3') || sid.startsWith('5') || sid.startsWith('6') || sid.startsWith('8')) ? '上櫃' : '上市',
             category,
+            broker,
             shares,
             avgCost,
             price,
@@ -2512,25 +3303,43 @@
       document.getElementById('badgeLockedCount').textContent = locked.length;
       document.getElementById('badgeAllCount').textContent = state.stocks.length;
 
+      // 更新券商分佈統計
+      const brokerCounts = { total: state.stocks.length, yuanta: 0, fubon: 0, other: 0 };
+      state.stocks.forEach(s => {
+        const b = s.broker || (['2344', '3689', '3141', '8109'].includes(String(s.id)) ? '富邦證券' : '元大證券');
+        if (b.includes('富邦')) brokerCounts.fubon++;
+        else if (b.includes('元大')) brokerCounts.yuanta++;
+        else brokerCounts.other++;
+      });
+      const elTotal = document.getElementById('brokerTotalCount');
+      const elYuanta = document.getElementById('brokerYuantaCount');
+      const elFubon = document.getElementById('brokerFubonCount');
+      if (elTotal) elTotal.textContent = brokerCounts.total;
+      if (elYuanta) elYuanta.textContent = brokerCounts.yuanta;
+      if (elFubon) elFubon.textContent = brokerCounts.fubon;
+
       const includeTax = document.getElementById('toggleIncludeTax')?.checked ?? true;
       const searchQ = (document.getElementById('searchStockInput')?.value || '').trim().toLowerCase();
       const tagFilter = document.getElementById('tagFilterSelect')?.value || 'ALL';
 
-      let totalMarketVal = 0, totalCost = 0, totalTodayPnl = 0, upCount = 0, downCount = 0;
+      let totalMarketVal = 0, totalCost = 0, totalFeesAndTaxes = 0, totalTodayPnl = 0, upCount = 0, downCount = 0;
 
       holdings.forEach(s => {
-        const mv = s.shares * s.price;
-        const cost = s.shares * s.avgCost;
-        const feeAndTax = includeTax ? (cost * 0.001425 + mv * (0.001425 + 0.003)) : 0;
+        const mv = (s.shares || 0) * (s.price || 0);
+        const cost = (s.shares || 0) * (s.avgCost || 0);
+        const feeInfo = calculateStockTaxAndFee(s, includeTax);
+
         totalMarketVal += mv;
-        totalCost += (cost + feeAndTax);
+        totalCost += cost;
+        totalFeesAndTaxes += feeInfo.total;
+
         const prevPrice = s.price / (1 + (s.changePct / 100));
         totalTodayPnl += s.shares * (s.price - prevPrice);
         if (s.changePct > 0) upCount++;
         else if (s.changePct < 0) downCount++;
       });
 
-      const totalNetPnl = totalMarketVal - totalCost;
+      const totalNetPnl = totalMarketVal - totalCost - totalFeesAndTaxes;
       const totalRoiPct = totalCost > 0 ? (totalNetPnl / totalCost) * 100 : 0;
 
       document.getElementById('kpiVal1').textContent = '$' + formatNumber(totalMarketVal, 0);
@@ -2540,7 +3349,7 @@
       kpiVal2.textContent = (totalNetPnl >= 0 ? '+$' : '-$') + formatNumber(Math.abs(totalNetPnl), 0);
       kpiVal2.className = 'text-xl font-bold mt-1.5 ' + (totalNetPnl >= 0 ? 'tw-up' : 'tw-down');
       const kpiSub2 = document.getElementById('kpiSub2');
-      kpiSub2.textContent = `總報酬率：${totalRoiPct >= 0 ? '+' : ''}${totalRoiPct.toFixed(2)}%`;
+      kpiSub2.textContent = `總報酬率：${totalRoiPct >= 0 ? '+' : ''}${totalRoiPct.toFixed(2)}%${includeTax ? ' (含券商稅費)' : ' (未扣稅費)'}`;
       kpiSub2.className = 'text-xs mt-1 ' + (totalRoiPct >= 0 ? 'tw-up' : 'tw-down');
 
       const kpiVal3 = document.getElementById('kpiVal3');
@@ -2559,8 +3368,13 @@
       const filtered = state.stocks.filter(s => {
         if (state.categoryFilter !== 'all' && s.category !== state.categoryFilter) return false;
         if (tagFilter !== 'ALL' && s.strategyTag !== tagFilter) return false;
+        if (state.brokerFilter && state.brokerFilter !== 'ALL') {
+          const b = s.broker || (['2344', '3689', '3141', '8109'].includes(String(s.id)) ? '富邦證券' : '元大證券');
+          if (!b.includes(state.brokerFilter)) return false;
+        }
         if (searchQ) {
-          const hay = `${s.id} ${s.name} ${s.strategyTag} ${s.memo} ${s.cbCode}`.toLowerCase();
+          const b = s.broker || '';
+          const hay = `${s.id} ${s.name} ${s.strategyTag} ${s.memo} ${s.cbCode} ${b}`.toLowerCase();
           if (!hay.includes(searchQ)) return false;
         }
         return true;
@@ -2583,9 +3397,9 @@
         if (s.category === 'holding') {
           const mv = s.shares * s.price;
           const cost = s.shares * s.avgCost;
-          const feeTax = includeTax ? (cost * 0.001425 + mv * 0.004425) : 0;
-          const pnl = mv - cost - feeTax;
-          const roi = (cost + feeTax) > 0 ? (pnl / (cost + feeTax)) * 100 : 0;
+          const feeInfo = calculateStockTaxAndFee(s, includeTax);
+          const pnl = mv - cost - feeInfo.total;
+          const roi = cost > 0 ? (pnl / cost) * 100 : 0;
           const pnlColor = pnl >= 0 ? 'tw-up' : 'tw-down';
           posHtml = `
             <div class="font-semibold text-white">${(s.shares / 1000).toFixed(1)} 張 <span class="text-[10px] text-slate-400">(${formatNumber(s.shares)}股)</span></div>
@@ -2594,6 +3408,7 @@
           pnlHtml = `
             <div class="font-bold ${pnlColor}">${pnl >= 0 ? '+$' : '-$'}${formatNumber(Math.abs(pnl), 0)}</div>
             <div class="text-[11px] font-semibold ${pnlColor}">${roi >= 0 ? '+' : ''}${roi.toFixed(2)}%</div>
+            ${includeTax ? `<div class="text-[10px] text-slate-400">含稅費 -$${formatNumber(feeInfo.total)}</div>` : ''}
           `;
         } else {
           const diffToTarget = s.targetPrice > 0 ? ((s.price - s.targetPrice) / s.targetPrice) * 100 : 0;
@@ -2633,6 +3448,18 @@
           ? `<span class="px-1.5 py-0.5 text-[10px] rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">持股倉</span>`
           : `<span class="px-1.5 py-0.5 text-[10px] rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">鎖單股</span>`;
 
+        const currentBroker = s.broker || (['2344', '3689', '3141', '8109'].includes(String(s.id)) ? '富邦證券' : '元大證券');
+        const isFubon = currentBroker.includes('富邦');
+        const brokerBadge = `
+          <span class="text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+            isFubon
+              ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+              : 'bg-sky-500/15 text-sky-300 border border-sky-500/30'
+          }" title="下單券商折讓率：${isFubon ? '1.8折' : '6折'}">
+            ${currentBroker} (${isFubon ? '1.8折' : '6折'})
+          </span>
+        `;
+
         return `
           <tr class="hover:bg-slate-800/50 transition group">
             <td class="py-3 px-3">
@@ -2640,8 +3467,9 @@
                 <button type="button" onclick="inspectStockDeep('${s.id}', 'chips')" class="font-bold text-sm text-white hover:text-indigo-400 transition">${s.id} ${s.name}</button>
                 ${catBadge}
               </div>
-              <div class="flex items-center gap-1.5 mt-1">
+              <div class="flex flex-wrap items-center gap-1.5 mt-1">
                 <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">${s.market}</span>
+                ${brokerBadge}
                 <span class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/20">${s.strategyTag || '未分類'}</span>
               </div>
             </td>
@@ -3088,6 +3916,7 @@
           document.getElementById('formStockId').value = s.id;
           document.getElementById('formStockName').value = s.name;
           document.getElementById('formCategory').value = s.category;
+          document.getElementById('formBroker').value = s.broker || (['2344', '3689', '3141', '8109'].includes(String(s.id)) ? '富邦證券' : '元大證券');
           document.getElementById('formStrategyTag').value = s.strategyTag || '';
           document.getElementById('formShares').value = s.shares;
           document.getElementById('formAvgCost').value = s.avgCost;
@@ -3106,6 +3935,7 @@
         document.getElementById('formStockId').value = '';
         document.getElementById('formStockName').value = '';
         document.getElementById('formCategory').value = state.categoryFilter === 'locked' ? 'locked' : 'holding';
+        document.getElementById('formBroker').value = '元大證券';
         document.getElementById('formStrategyTag').value = 'CB異動鎖單';
         document.getElementById('formShares').value = state.categoryFilter === 'locked' ? 0 : 1000;
         document.getElementById('formAvgCost').value = 0;
@@ -3137,6 +3967,7 @@
       }
 
       const category = document.getElementById('formCategory').value;
+      const broker = document.getElementById('formBroker').value;
       const strategyTag = document.getElementById('formStrategyTag').value.trim() || '核心觀察';
       const shares = parseFloat(document.getElementById('formShares').value) || 0;
       const avgCost = parseFloat(document.getElementById('formAvgCost').value) || 0;
@@ -3154,7 +3985,7 @@
       if (existingIdx >= 0) {
         const s = state.stocks[existingIdx];
         Object.assign(s, {
-          name, category, strategyTag, shares, avgCost, price, changePct,
+          name, category, broker, strategyTag, shares, avgCost, price, changePct,
           targetPrice, cbCode, holder400Pct, holder400Diff, holder1000Pct, holder1000Diff, memo
         });
       } else {
@@ -3162,7 +3993,7 @@
         state.stocks.push({
           id, name,
           market: (id.startsWith('3') || id.startsWith('5') || id.startsWith('6') || id.startsWith('8')) ? '上櫃' : '上市',
-          category, strategyTag, shares, avgCost, price, changePct, targetPrice, cbCode,
+          category, broker, strategyTag, shares, avgCost, price, changePct, targetPrice, cbCode,
           holder400Pct, holder400Diff, holder1000Pct, holder1000Diff, memo,
           instToday: 200, inst5d: 650, foreignPct: 20.0, trustPct: 5.0, instStreak: '新納管標的',
           shareholdersCount: 25000, shareholdersDiff: 0, insiderPct: 15.0, insiderMonthlyDiff: 0, insiderPledgePct: 0.0,
@@ -4027,10 +4858,12 @@
     }
 
     // =========================================================================
-    // INITIALIZATION
+    // INITIALIZATION & SECURITY GATE CHECK
     // =========================================================================
     window.addEventListener('DOMContentLoaded', () => {
       loadState();
+      checkAuthOnStartup();
+      initGoogleAuth();
       setCategoryFilter('holding');
       populateStockSelects();
       updateNavJournalBadge();
@@ -4043,6 +4876,10 @@
           badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-dot"></span><span>Cloudflare Pages 連線中</span>';
         }
       }
+    });
+
+    window.addEventListener('load', () => {
+      initGoogleAuth();
     });
   </script>
 </body>
