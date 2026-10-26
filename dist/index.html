@@ -108,18 +108,18 @@
       <!-- Emergency Master PIN Login Option -->
       <div class="pt-4 border-t border-slate-800 space-y-2.5">
         <button type="button" onclick="togglePinLogin()" id="btnShowPinLogin" class="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-indigo-300 font-semibold transition flex items-center justify-center gap-1.5 shadow-sm">
-          <span>🔑</span> <span>使用管理安全授權碼 (預設 PIN：8888) 直接解鎖登入</span>
+          <span>🔑</span> <span>使用管理安全授權碼 (PIN) 直接解鎖登入</span>
         </button>
 
         <div id="pinLoginBox" class="space-y-2 pt-1 text-left">
-          <label for="masterPinInput" class="block text-[11px] text-slate-400 font-semibold">輸入管理安全碼 (預設：8888)：</label>
+          <label for="masterPinInput" class="block text-[11px] text-slate-400 font-semibold">輸入管理安全碼：</label>
           <div class="flex gap-2">
-            <input type="password" id="masterPinInput" value="8888" placeholder="請輸入安全碼" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500" />
+            <input type="password" id="masterPinInput" placeholder="請輸入管理安全碼" onkeydown="if(event.key==='Enter') submitPinLogin()" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500" />
             <button type="button" onclick="submitPinLogin()" class="px-5 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-sm">
               解鎖登入
             </button>
           </div>
-          <p class="text-[10px] text-slate-500">※ 尚未在 Google 註冊專屬 Client ID 或網路連線異常時之官方管理備援通道。</p>
+          <p class="text-[10px] text-slate-500">※ 初次登入預設安全碼為 8888，登入後可於右上角「資安管理」隨時變更。</p>
         </div>
       </div>
     </div>
