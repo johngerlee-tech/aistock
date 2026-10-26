@@ -383,8 +383,15 @@
               自動交叉比對「可轉債 CB 溢價異動」、「400/1000張大戶同增籌碼」、「月營收與毛利率雙升」、「董監事內部人佈局」，一鍵轉入鎖單觀察或持股倉！
             </p>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex flex-wrap items-center gap-2">
+            <span id="screenerQuoteSyncBadge" class="px-2.5 py-1 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-xs font-semibold text-emerald-300 flex items-center gap-1.5 shadow-sm">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+              <span id="screenerQuoteSyncText">🟢 報價即時連線</span>
+            </span>
             <span id="screenerMatchedCountBadge" class="px-3 py-1.5 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-xs font-bold text-indigo-300">符合策略：16 檔</span>
+            <button type="button" onclick="syncScreenerLiveQuotes(true)" class="px-2.5 py-1.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/40 text-xs font-medium transition flex items-center gap-1 shadow-sm" title="立即連線證交所與邊緣端更新最新報價">
+              <span>⚡</span> <span>更新報價</span>
+            </button>
             <button type="button" onclick="resetScreenerFilters()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition">重設條件</button>
           </div>
         </div>
@@ -410,7 +417,32 @@
         </div>
 
         <!-- Multi-factor Filter Toolbar -->
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-2">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 pt-2">
+          <!-- 1. 股價級距快選 -->
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-400 mb-1">股價級距 (元)</label>
+            <select id="screenerPriceFilter" onchange="handleScreenerPriceFilterChange()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+              <option value="ALL">全部價格 (不限)</option>
+              <option value="PRICE_LT_50">🪙 銅板潛力股 (&lt; 50元)</option>
+              <option value="PRICE_50_150">🚀 中低價成長 (50 ~ 150元)</option>
+              <option value="PRICE_150_300">💎 中高價主力 (150 ~ 300元)</option>
+              <option value="PRICE_300_600">🌟 高價領頭羊 (300 ~ 600元)</option>
+              <option value="PRICE_GT_600">👑 超高價/千金股 (&gt; 600元)</option>
+              <option value="CUSTOM">✍️ 自訂區間...</option>
+            </select>
+          </div>
+
+          <!-- 2. 自訂股價區間 (最低 ~ 最高) -->
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-400 mb-1">自訂價格區間 (元)</label>
+            <div class="flex items-center gap-1">
+              <input type="number" id="screenerMinPrice" placeholder="最低" oninput="handleScreenerPriceInputChange()" class="w-1/2 bg-slate-950 border border-slate-700 rounded-xl px-2 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 text-center" />
+              <span class="text-slate-500 text-xs">~</span>
+              <input type="number" id="screenerMaxPrice" placeholder="最高" oninput="handleScreenerPriceInputChange()" class="w-1/2 bg-slate-950 border border-slate-700 rounded-xl px-2 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 text-center" />
+            </div>
+          </div>
+
+          <!-- 3. 本益比 (P/E) -->
           <div>
             <label class="block text-[11px] font-semibold text-slate-400 mb-1">本益比 (P/E)</label>
             <select id="screenerPeFilter" onchange="filterScreener()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500">
@@ -420,6 +452,8 @@
               <option value="PE_LT_25">成長型 (P/E &lt; 25x)</option>
             </select>
           </div>
+
+          <!-- 4. 400張大戶持股比 -->
           <div>
             <label class="block text-[11px] font-semibold text-slate-400 mb-1">400張大戶持股比</label>
             <select id="screenerHolderFilter" onchange="filterScreener()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500">
@@ -429,6 +463,20 @@
               <option value="HOLDER_GT_75">&gt; 75% (籌碼極致鎖死)</option>
             </select>
           </div>
+
+          <!-- 5. 1000張大戶週增減 -->
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-400 mb-1">1000張大戶 / 週增減</label>
+            <select id="screenerHolder1000Filter" onchange="filterScreener()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+              <option value="ALL">全部大戶週增減</option>
+              <option value="H1000_DIFF_GT_0">🌟 最近一週增加 (&gt; 0%)</option>
+              <option value="H1000_DIFF_GT_05">🔥 最近一週加碼 (&gt; +0.5%)</option>
+              <option value="H1000_DIFF_GT_10">🚀 籌碼大舉進駐 (&gt; +1.0%)</option>
+              <option value="H1000_PCT_GT_60">🏛️ 千張大戶持股 &gt; 60%</option>
+            </select>
+          </div>
+
+          <!-- 6. 月營收年增 (YoY) -->
           <div>
             <label class="block text-[11px] font-semibold text-slate-400 mb-1">月營收年增 (YoY)</label>
             <select id="screenerRevFilter" onchange="filterScreener()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500">
@@ -438,6 +486,8 @@
               <option value="REV_GT_40">YoY &gt; 40% (翻倍飆股體質)</option>
             </select>
           </div>
+
+          <!-- 7. CB 可轉債狀態 -->
           <div>
             <label class="block text-[11px] font-semibold text-slate-400 mb-1">CB 可轉債狀態</label>
             <select id="screenerCbFilter" onchange="filterScreener()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500">
@@ -446,17 +496,36 @@
               <option value="CB_ACTIVE">CB 已轉 &gt; 15% 或 溢價 &lt; 10%</option>
             </select>
           </div>
+
+          <!-- 8. 現金殖利率 -->
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-400 mb-1">現金殖利率</label>
+            <select id="screenerYieldFilter" onchange="filterScreener()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+              <option value="ALL">全部殖利率</option>
+              <option value="YIELD_GT_2">殖利率 &gt; 2%</option>
+              <option value="YIELD_GT_3">殖利率 &gt; 3%</option>
+              <option value="YIELD_GT_4">高殖利率 (&gt; 4%)</option>
+            </select>
+          </div>
+
+          <!-- 9. 排序方式 -->
           <div>
             <label class="block text-[11px] font-semibold text-slate-400 mb-1">排序方式</label>
             <select id="screenerSortBy" onchange="filterScreener()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500">
               <option value="SCORE_DESC">AI 量化綜合評分 (高至低)</option>
-              <option value="CB_CONV_DESC">CB 轉換爆發力 (高至低)</option>
-              <option value="HOLDER_DIFF_DESC">400張週增幅 (大至小)</option>
-              <option value="REV_YOY_DESC">月營收 YoY 增速 (高至低)</option>
+              <option value="PRICE_DESC">最新市價 (高至低)</option>
+              <option value="PRICE_ASC">最新市價 (低至高)</option>
               <option value="PRICE_CHG_DESC">當日漲幅 (強至弱)</option>
+              <option value="HOLDER_DIFF_DESC">400張週增幅 (大至小)</option>
+              <option value="HOLDER1000_DIFF_DESC">1000張週增幅 (大至小)</option>
+              <option value="CB_CONV_DESC">CB 轉換爆發力 (高至低)</option>
+              <option value="REV_YOY_DESC">月營收 YoY 增速 (高至低)</option>
+              <option value="YIELD_DESC">現金殖利率 (高至低)</option>
             </select>
           </div>
-          <div>
+
+          <!-- 10. 關鍵字搜尋 (跨欄) -->
+          <div class="col-span-2 sm:col-span-1 md:col-span-2">
             <label class="block text-[11px] font-semibold text-slate-400 mb-1">關鍵字 / 產業題材</label>
             <input type="text" id="screenerSearchInput" oninput="filterScreener()" placeholder="搜尋代號/名稱/AI/水冷/CPO..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500" />
           </div>
@@ -473,7 +542,7 @@
                 <th class="py-3 px-2.5 text-right">最新市價 / 當日漲跌</th>
                 <th class="py-3 px-2.5 text-center">符合策略標籤</th>
                 <th class="py-3 px-2.5 text-center bg-indigo-950/20">400張大戶 / 週增減</th>
-                <th class="py-3 px-2.5 text-center bg-indigo-950/20">1000張大戶 / 散戶增減</th>
+                <th class="py-3 px-2.5 text-center bg-indigo-950/20">1000張大戶 / 週增減</th>
                 <th class="py-3 px-2.5 text-center">董監持股 / 月增減</th>
                 <th class="py-3 px-2.5 text-center">CB 可轉債動能<br><span class="text-[10px] font-normal text-slate-500">代號 / 轉換率 / 溢價率</span></th>
                 <th class="py-3 px-2.5 text-right">營收成長 &amp; 獲利三率<br><span class="text-[10px] font-normal text-slate-500">YoY / EPS / 毛利</span></th>
@@ -2826,6 +2895,18 @@
       if (state.mainView === 'chips') renderChipsView();
       if (state.mainView === 'financials') renderFinancialsView();
 
+      // 同步更新選股篩選器候選池中的最新市價
+      if (typeof SCREENER_DATABASE !== 'undefined' && Array.isArray(SCREENER_DATABASE)) {
+        SCREENER_DATABASE.forEach(c => {
+          const matched = state.stocks.find(s => s.id === c.id);
+          if (matched && matched.price > 0) {
+            c.price = matched.price;
+            c.changePct = matched.changePct;
+          }
+        });
+        if (state.mainView === 'screener') renderScreenerTable(false);
+      }
+
       if (spinner) spinner.classList.add('hidden');
       if (label) label.textContent = '⚡ 更新最新報價';
 
@@ -3269,7 +3350,10 @@
       });
 
       if (viewName === 'portfolio') renderPortfolioTable();
-      else if (viewName === 'screener') renderScreenerTable();
+      else if (viewName === 'screener') {
+        renderScreenerTable(false);
+        if (typeof syncScreenerLiveQuotes === 'function') syncScreenerLiveQuotes();
+      }
       else if (viewName === 'chips') { populateStockSelects(); renderChipsView(); }
       else if (viewName === 'financials') { populateStockSelects(); renderFinancialsView(); }
       else if (viewName === 'journal') renderJournalView();
@@ -4084,6 +4168,9 @@
     // =========================================================================
     // SMART SCREENER CONTROLLER & LOGIC
     // =========================================================================
+    let screenerDebounceTimer = null;
+    let isScreenerLiveSyncing = false;
+
     function setScreenerStrategy(strat) {
       state.screenerStrategyFilter = strat;
       const pills = {
@@ -4100,22 +4187,74 @@
           ? 'px-3 py-1.5 rounded-xl text-xs font-semibold transition bg-indigo-600 text-white shadow'
           : 'px-3 py-1.5 rounded-xl text-xs font-semibold transition bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700';
       });
-      renderScreenerTable();
+      filterScreener(true);
+    }
+
+    function handleScreenerPriceFilterChange() {
+      const val = document.getElementById('screenerPriceFilter')?.value || 'ALL';
+      const minInput = document.getElementById('screenerMinPrice');
+      const maxInput = document.getElementById('screenerMaxPrice');
+      if (minInput && maxInput) {
+        if (val === 'ALL') {
+          minInput.value = '';
+          maxInput.value = '';
+        } else if (val === 'PRICE_LT_50') {
+          minInput.value = '';
+          maxInput.value = '50';
+        } else if (val === 'PRICE_50_150') {
+          minInput.value = '50';
+          maxInput.value = '150';
+        } else if (val === 'PRICE_150_300') {
+          minInput.value = '150';
+          maxInput.value = '300';
+        } else if (val === 'PRICE_300_600') {
+          minInput.value = '300';
+          maxInput.value = '600';
+        } else if (val === 'PRICE_GT_600') {
+          minInput.value = '600';
+          maxInput.value = '';
+        }
+      }
+      filterScreener(true);
+    }
+
+    function handleScreenerPriceInputChange() {
+      const minVal = document.getElementById('screenerMinPrice')?.value;
+      const maxVal = document.getElementById('screenerMaxPrice')?.value;
+      const select = document.getElementById('screenerPriceFilter');
+      if (select) {
+        if (!minVal && !maxVal) {
+          select.value = 'ALL';
+        } else {
+          select.value = 'CUSTOM';
+        }
+      }
+      filterScreener(true);
     }
 
     function resetScreenerFilters() {
       state.screenerStrategyFilter = 'ALL';
+      const priceFilter = document.getElementById('screenerPriceFilter');
+      const minPrice = document.getElementById('screenerMinPrice');
+      const maxPrice = document.getElementById('screenerMaxPrice');
       const pe = document.getElementById('screenerPeFilter');
       const holder = document.getElementById('screenerHolderFilter');
+      const holder1000 = document.getElementById('screenerHolder1000Filter');
       const rev = document.getElementById('screenerRevFilter');
       const cb = document.getElementById('screenerCbFilter');
+      const yieldFilter = document.getElementById('screenerYieldFilter');
       const sort = document.getElementById('screenerSortBy');
       const search = document.getElementById('screenerSearchInput');
 
+      if (priceFilter) priceFilter.value = 'ALL';
+      if (minPrice) minPrice.value = '';
+      if (maxPrice) maxPrice.value = '';
       if (pe) pe.value = 'ALL';
       if (holder) holder.value = 'ALL';
+      if (holder1000) holder1000.value = 'ALL';
       if (rev) rev.value = 'ALL';
       if (cb) cb.value = 'ALL';
+      if (yieldFilter) yieldFilter.value = 'ALL';
       if (sort) sort.value = 'SCORE_DESC';
       if (search) search.value = '';
 
@@ -4123,23 +4262,153 @@
       showToast('已重設選股篩選條件！');
     }
 
-    function filterScreener() {
-      renderScreenerTable();
+    function filterScreener(triggerQuoteSync = true) {
+      renderScreenerTable(false);
+      if (triggerQuoteSync) {
+        if (screenerDebounceTimer) clearTimeout(screenerDebounceTimer);
+        screenerDebounceTimer = setTimeout(() => {
+          syncScreenerLiveQuotes(false);
+        }, 350);
+      }
     }
 
-    function renderScreenerTable() {
+    async function syncScreenerLiveQuotes(showToastNotice = false) {
+      if (isScreenerLiveSyncing) return;
+      isScreenerLiveSyncing = true;
+
+      const syncText = document.getElementById('screenerQuoteSyncText');
+      if (syncText) {
+        syncText.innerHTML = '<span class="inline-block animate-spin mr-1">🔄</span>同步報價中...';
+      }
+
+      // 1. 先同步已在持股倉/鎖單股中的最新市價（即時零延遲）
+      let updatedCount = 0;
+      SCREENER_DATABASE.forEach(cand => {
+        const s = state.stocks.find(stk => stk.id === cand.id);
+        if (s && s.price > 0) {
+          cand.price = s.price;
+          cand.changePct = s.changePct;
+          updatedCount++;
+        }
+      });
+
+      // 2. 透過 Cloudflare Edge Worker 或證交所 MIS 抓取盤中最新即時報價
+      const codes = SCREENER_DATABASE.map(c => c.id).join(',');
+      let usedEdge = false;
+
+      try {
+        const edgeUrl = `/api/quote?codes=${encodeURIComponent(codes)}`;
+        const edgeResp = await fetch(edgeUrl, { cache: 'no-cache' });
+        if (edgeResp.ok) {
+          const res = await edgeResp.json();
+          if (res && res.success && res.data) {
+            Object.values(res.data).forEach(q => {
+              const cand = SCREENER_DATABASE.find(c => c.id === q.id);
+              if (cand) {
+                if (q.price > 0) cand.price = q.price;
+                cand.changePct = q.changePct;
+                if (q.name) cand.name = q.name;
+                if (q.market) cand.market = q.market;
+                updatedCount++;
+              }
+              const s = state.stocks.find(stk => stk.id === q.id);
+              if (s) {
+                if (q.price > 0) s.price = q.price;
+                s.changePct = q.changePct;
+              }
+            });
+            usedEdge = true;
+          }
+        }
+      } catch (e) {}
+
+      // 若未透過 Edge 成功更新，則嘗試 TWSE/TPEx 官方 MIS 通道
+      if (!usedEdge) {
+        const channelParts = [];
+        SCREENER_DATABASE.forEach(cand => {
+          const prefix = /^[3568]/.test(cand.id) ? 'otc' : 'tse';
+          channelParts.push(`${prefix}_${cand.id}.tw`);
+        });
+        const misUrl = `https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=${channelParts.join('|')}&json=1&delay=0&_=${Date.now()}`;
+        const proxyUrls = [
+          `https://corsproxy.io/?url=${encodeURIComponent(misUrl)}`,
+          `https://api.allorigins.win/raw?url=${encodeURIComponent(misUrl)}`,
+          misUrl
+        ];
+
+        for (const pUrl of proxyUrls) {
+          try {
+            const resp = await fetch(pUrl);
+            if (resp.ok) {
+              const data = await resp.json();
+              if (data && Array.isArray(data.msgArray) && data.msgArray.length > 0) {
+                data.msgArray.forEach(item => {
+                  const cand = SCREENER_DATABASE.find(c => c.id === item.c);
+                  if (cand) {
+                    const yestClose = parseFloat(item.y) || cand.price;
+                    let curPrice = parseFloat(item.z);
+                    if (isNaN(curPrice) || curPrice === 0) {
+                      curPrice = parseFloat((item.a || '').split('_')[0]) || parseFloat((item.b || '').split('_')[0]) || yestClose;
+                    }
+                    if (curPrice > 0) {
+                      const chgPct = yestClose > 0 ? ((curPrice - yestClose) / yestClose) * 100 : 0;
+                      cand.price = Math.round(curPrice * 100) / 100;
+                      cand.changePct = Math.round(chgPct * 100) / 100;
+                      updatedCount++;
+
+                      const s = state.stocks.find(stk => stk.id === item.c);
+                      if (s) {
+                        s.price = cand.price;
+                        s.changePct = cand.changePct;
+                      }
+                    }
+                  }
+                });
+                if (updatedCount > 0) break;
+              }
+            }
+          } catch (err) {}
+        }
+      }
+
+      state.screenerLastSyncTime = new Date().toLocaleTimeString('zh-TW', { hour12: false });
+      if (syncText) {
+        syncText.textContent = `🟢 最新報價已同步 (${state.screenerLastSyncTime})`;
+      }
+
+      isScreenerLiveSyncing = false;
+
+      // 更新篩選結果列表（不重覆觸發 sync 輪詢）
+      renderScreenerTable(false);
+
+      if (showToastNotice) {
+        showToast(`已更新選股篩選器 ${updatedCount} 檔標的最新即時市價！(${state.screenerLastSyncTime})`);
+      }
+    }
+
+    function renderScreenerTable(triggerSync = false) {
       const peFilter = document.getElementById('screenerPeFilter')?.value || 'ALL';
       const holderFilter = document.getElementById('screenerHolderFilter')?.value || 'ALL';
+      const holder1000Filter = document.getElementById('screenerHolder1000Filter')?.value || 'ALL';
       const revFilter = document.getElementById('screenerRevFilter')?.value || 'ALL';
       const cbFilter = document.getElementById('screenerCbFilter')?.value || 'ALL';
+      const yieldFilter = document.getElementById('screenerYieldFilter')?.value || 'ALL';
       const sortBy = document.getElementById('screenerSortBy')?.value || 'SCORE_DESC';
       const searchQ = (document.getElementById('screenerSearchInput')?.value || '').trim().toLowerCase();
+
+      const minPriceVal = parseFloat(document.getElementById('screenerMinPrice')?.value);
+      const maxPriceVal = parseFloat(document.getElementById('screenerMaxPrice')?.value);
 
       let list = SCREENER_DATABASE.filter(item => {
         // 策略分類篩選
         if (state.screenerStrategyFilter !== 'ALL') {
           if (!item.strategies.includes(state.screenerStrategyFilter)) return false;
         }
+
+        // 股價區間篩選 (自訂最低 ~ 最高價)
+        if (!isNaN(minPriceVal) && item.price < minPriceVal) return false;
+        if (!isNaN(maxPriceVal) && item.price > maxPriceVal) return false;
+
         // 本益比篩選
         if (peFilter === 'PE_LT_15' && item.pe >= 15) return false;
         if (peFilter === 'PE_LT_20' && item.pe >= 20) return false;
@@ -4149,6 +4418,12 @@
         if (holderFilter === 'HOLDER_GT_60' && item.holder400Pct < 60) return false;
         if (holderFilter === 'HOLDER_GT_70' && item.holder400Pct < 70) return false;
         if (holderFilter === 'HOLDER_GT_75' && item.holder400Pct < 75) return false;
+
+        // 1000張大戶週增減與持股比篩選
+        if (holder1000Filter === 'H1000_DIFF_GT_0' && item.holder1000Diff <= 0) return false;
+        if (holder1000Filter === 'H1000_DIFF_GT_05' && item.holder1000Diff < 0.5) return false;
+        if (holder1000Filter === 'H1000_DIFF_GT_10' && item.holder1000Diff < 1.0) return false;
+        if (holder1000Filter === 'H1000_PCT_GT_60' && item.holder1000Pct < 60) return false;
 
         // 營收年增率 YoY 篩選
         if (revFilter === 'REV_GT_15' && item.revYoY < 15) return false;
@@ -4162,6 +4437,11 @@
           if (item.cbConvertedPct < 15 && item.cbPremiumPct > 10) return false;
         }
 
+        // 現金殖利率篩選
+        if (yieldFilter === 'YIELD_GT_2' && item.yieldPct < 2) return false;
+        if (yieldFilter === 'YIELD_GT_3' && item.yieldPct < 3) return false;
+        if (yieldFilter === 'YIELD_GT_4' && item.yieldPct < 4) return false;
+
         // 關鍵字搜尋
         if (searchQ) {
           const haystack = `${item.id} ${item.name} ${item.industry} ${item.catalyst} ${item.tags.join(' ')} ${item.cbCode}`.toLowerCase();
@@ -4174,10 +4454,14 @@
       // 排序
       list.sort((a, b) => {
         if (sortBy === 'SCORE_DESC') return b.score - a.score;
-        if (sortBy === 'CB_CONV_DESC') return b.cbConvertedPct - a.cbConvertedPct;
-        if (sortBy === 'HOLDER_DIFF_DESC') return b.holder400Diff - a.holder400Diff;
-        if (sortBy === 'REV_YOY_DESC') return b.revYoY - a.revYoY;
+        if (sortBy === 'PRICE_DESC') return b.price - a.price;
+        if (sortBy === 'PRICE_ASC') return a.price - b.price;
         if (sortBy === 'PRICE_CHG_DESC') return b.changePct - a.changePct;
+        if (sortBy === 'HOLDER_DIFF_DESC') return b.holder400Diff - a.holder400Diff;
+        if (sortBy === 'HOLDER1000_DIFF_DESC') return b.holder1000Diff - a.holder1000Diff;
+        if (sortBy === 'CB_CONV_DESC') return b.cbConvertedPct - a.cbConvertedPct;
+        if (sortBy === 'REV_YOY_DESC') return b.revYoY - a.revYoY;
+        if (sortBy === 'YIELD_DESC') return b.yieldPct - a.yieldPct;
         return 0;
       });
 
@@ -4267,8 +4551,8 @@
 
             <td class="py-3 px-2.5 text-center bg-indigo-950/10">
               <div class="font-bold text-white">${item.holder1000Pct.toFixed(2)}%</div>
-              <div class="text-[10px] text-slate-400">
-                散戶週 ${item.shareholdersDiff <= 0 ? '▼ ' : '▲ +'}${Math.abs(item.shareholdersDiff)}人
+              <div class="text-[11px] font-semibold ${item.holder1000Diff >= 0 ? 'tw-up' : 'tw-down'}">
+                週 ${item.holder1000Diff >= 0 ? '▲ +' : '▼ '}${item.holder1000Diff.toFixed(2)}%
               </div>
             </td>
 
