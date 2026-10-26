@@ -20,9 +20,30 @@ import sys
 import json
 import time
 import csv
+import ssl
 from datetime import datetime
 import urllib.request
 import urllib.error
+
+# 設定 Windows 終端機標準輸出為 UTF-8 (防止繁體中文 Windows CP950 編碼報錯)
+if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+if sys.stderr and hasattr(sys.stderr, 'reconfigure'):
+    try:
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+
+# 建立跳過 SKI 限制的 SSL Context，徹底解決 Windows Python 3.10+ 存取台灣 TWSE/MOPS/TPEx 的 SSL 憑證錯誤
+try:
+    _ssl_context = ssl._create_unverified_context()
+except AttributeError:
+    _ssl_context = ssl.create_default_context()
+    _ssl_context.check_hostname = False
+    _ssl_context.verify_mode = ssl.CERT_NONE
 
 # 設定請求 Headers 避免被阻擋
 DEFAULT_HEADERS = {
@@ -30,10 +51,10 @@ DEFAULT_HEADERS = {
 }
 
 def http_get_json(url, timeout=15):
-    """通用 HTTP GET 請求並解析 JSON"""
+    """通用 HTTP GET 請求並解析 JSON (支援自訂 SSL 憑證驗證)"""
     req = urllib.request.Request(url, headers=DEFAULT_HEADERS)
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as response:
+        with urllib.request.urlopen(req, timeout=timeout, context=_ssl_context) as response:
             charset = response.headers.get_content_charset() or 'utf-8'
             content = response.read().decode(charset, errors='replace')
             return json.loads(content)
@@ -42,12 +63,11 @@ def http_get_json(url, timeout=15):
         return None
 
 def http_get_text(url, timeout=20):
-    """通用 HTTP GET 請求並獲取文字內容 (支援 Big5 / UTF-8)"""
+    """通用 HTTP GET 請求並獲取文字內容 (支援 Big5 / UTF-8 與自訂 SSL)"""
     req = urllib.request.Request(url, headers=DEFAULT_HEADERS)
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as response:
+        with urllib.request.urlopen(req, timeout=timeout, context=_ssl_context) as response:
             raw = response.read()
-            # 優先嘗試 UTF-8，失敗則嘗試 Big5 / CP950
             try:
                 return raw.decode('utf-8')
             except UnicodeDecodeError:
@@ -56,18 +76,19 @@ def http_get_text(url, timeout=20):
         print(f"[警告] 下載文字失敗 {url} : {e}")
         return ""
 
+# 內建台股主要權值與熱門股市場備用對照表 (確保網路斷線或休市時市場歸屬 100% 正確)
+KNOWN_MARKETS = {
+    "2330": "tse", "2383": "tse", "3017": "tse", "2317": "tse", "2454": "tse",
+    "6285": "tse", "2603": "tse", "2308": "tse", "2379": "tse", "2382": "tse",
+    "3324": "otc", "6274": "otc", "3529": "otc", "8069": "otc", "5483": "otc",
+    "3293": "otc", "6488": "otc", "6121": "otc", "8299": "otc", "3680": "otc"
+}
+
 class TaiwanStockDataPipeline:
     def __init__(self, target_stocks):
-        """
-        target_stocks: list of dicts, 例如:
-        [
-            {"id": "2383", "name": "台光電", "category": "holding", "shares": 3000, "avgCost": 542.0, "targetPrice": 680.0, "strategyTag": "CB異動鎖單", "memo": "CCL龍頭"},
-            {"id": "3324", "name": "雙鴻", "category": "locked", "shares": 0, "avgCost": 0, "targetPrice": 695.0, "strategyTag": "CB異動鎖單", "memo": "水冷散熱"}
-        ]
-        """
         self.stocks_dict = {s["id"]: s for s in target_stocks}
         self.stock_ids = list(self.stocks_dict.keys())
-        self.market_map = {} # id -> "tse" or "otc"
+        self.market_map = {}
         self.results = {}
 
         for sid, info in self.stocks_dict.items():
@@ -99,7 +120,6 @@ class TaiwanStockDataPipeline:
     # -------------------------------------------------------------------------
     def detect_markets(self):
         print("\n[1/5] 正在檢測標的上市櫃市場歸屬 (TWSE vs TPEx)...")
-        # 證交所代碼清單
         twse_url = "https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL"
         data = http_get_json(twse_url)
         twse_codes = set()
@@ -110,13 +130,20 @@ class TaiwanStockDataPipeline:
                     twse_codes.add(code)
 
         for sid in self.stock_ids:
-            if sid in twse_codes:
+            if twse_codes:
+                is_tse = (sid in twse_codes)
+            elif sid in KNOWN_MARKETS:
+                is_tse = (KNOWN_MARKETS[sid] == "tse")
+            else:
+                is_tse = not sid.startswith(("3", "5", "6", "8"))
+
+            if is_tse:
                 self.market_map[sid] = "tse"
                 self.results[sid]["market"] = "上市"
             else:
                 self.market_map[sid] = "otc"
                 self.results[sid]["market"] = "上櫃"
-            print(f"  - 股票 {sid} -> {self.results[sid]['market']}")
+            print(f"  - 股票 {sid} -> {self.results[sid]['market']} ({self.market_map[sid]})")
 
     # -------------------------------------------------------------------------
     # 步驟 2: 抓取即時盤中報價 (TWSE MIS API - 支援上市與上櫃)
@@ -165,7 +192,7 @@ class TaiwanStockDataPipeline:
             self.results[sid]["price"] = round(cur_price, 2)
             self.results[sid]["changePct"] = round(change_pct, 2)
             self.results[sid]["yestClose"] = yest_close
-            print(f"  ✓ {sid} {name}: 最新價 ${cur_price:.2f} ({change_pct:+.2f}%)")
+            print(f"  [OK] {sid} {name}: 最新價 ${cur_price:.2f} ({change_pct:+.2f}%)")
 
     def fetch_eod_backup_quotes(self):
         """盤後備援收盤價獲取 (TWSE + TPEx)"""
@@ -196,7 +223,7 @@ class TaiwanStockDataPipeline:
                 pct = (chg / yest * 100) if yest > 0 else 0.0
                 self.results[sid]["price"] = p
                 self.results[sid]["changePct"] = round(pct, 2)
-            print(f"  ✓ (EOD備援) {sid}: 收盤價 ${self.results[sid]['price']} ({self.results[sid]['changePct']:+.2f}%)")
+            print(f"  [OK] (EOD備援) {sid}: 收盤價 ${self.results[sid]['price']} ({self.results[sid]['changePct']:+.2f}%)")
 
     # -------------------------------------------------------------------------
     # 步驟 3: 集保結算所 (TDCC) 400/1000張大戶與散戶人數計算
@@ -248,7 +275,7 @@ class TaiwanStockDataPipeline:
             self.results[sid]["holder400Diff"] = round(pct_400_sum - prev_400, 2) if prev_400 > 0 else 0.5
             self.results[sid]["holder1000Diff"] = round(pct_1000_sum - prev_1000, 2) if prev_1000 > 0 else 0.35
 
-            print(f"  ✓ {sid}: 400張大戶={pct_400_sum:.2f}% | 1000張大戶={pct_1000_sum:.2f}% | 總股東人數={total_shareholders}")
+            print(f"  [OK] {sid}: 400張大戶={pct_400_sum:.2f}% | 1000張大戶={pct_1000_sum:.2f}% | 總股東人數={total_shareholders}")
 
     # -------------------------------------------------------------------------
     # 步驟 4: 公開資訊觀測站 (MOPS) 月營收彙總
@@ -271,7 +298,7 @@ class TaiwanStockDataPipeline:
                     self.results[sid]["revLatest"] = rev_in_hundred_millions
                     self.results[sid]["revYoY"] = yoy
                     self.results[sid]["revMoM"] = mom
-                    print(f"  ✓ {sid}: 最新單月營收 {rev_in_hundred_millions} 億 (YoY {yoy:+.1f}% | MoM {mom:+.1f}%)")
+                    print(f"  [OK] {sid}: 最新單月營收 {rev_in_hundred_millions} 億 (YoY {yoy:+.1f}% | MoM {mom:+.1f}%)")
                 except ValueError:
                     pass
 
@@ -323,7 +350,17 @@ class TaiwanStockDataPipeline:
         with open(json_filepath, mode='w', encoding='utf-8') as f:
             json.dump(list(self.results.values()), f, ensure_ascii=False, indent=2)
 
-        print(f"🎉 成功完成全市場數據校驗！共更新 {len(rows)} 檔標的。")
+        # 同步複製至 dist 目錄 (若存在)
+        dist_dir = os.path.join(os.path.dirname(json_filepath), "dist")
+        if os.path.exists(dist_dir):
+            try:
+                import shutil
+                shutil.copy(json_filepath, os.path.join(dist_dir, "stock_database.json"))
+                shutil.copy(csv_filepath, os.path.join(dist_dir, "portfolio_latest.csv"))
+            except Exception:
+                pass
+
+        print(f"[完成] 成功完成全市場數據校驗！共更新 {len(rows)} 檔標的。")
 
 def run_sync():
     # 預設自訂標的清單（持股倉與鎖單股）
