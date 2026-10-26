@@ -96,6 +96,9 @@
         
         <div id="googleBtnContainer" class="flex flex-col items-center justify-center min-h-[46px] gap-2">
           <div id="googleSignInBtn" class="flex justify-center"></div>
+          <div class="text-[11px] text-slate-500 text-center">
+            ※ 若顯示「OAuth client was not found」，請改用下方安全碼 <span class="font-bold text-amber-400">8888</span> 即可直接登入
+          </div>
         </div>
 
         <!-- Alert Notification Box -->
@@ -104,19 +107,19 @@
 
       <!-- Emergency Master PIN Login Option -->
       <div class="pt-4 border-t border-slate-800 space-y-2.5">
-        <button type="button" onclick="togglePinLogin()" id="btnShowPinLogin" class="text-xs text-indigo-400 hover:text-indigo-300 underline font-medium">
-          🔑 使用管理安全授權碼 (Master PIN) 登入
+        <button type="button" onclick="togglePinLogin()" id="btnShowPinLogin" class="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-indigo-300 font-semibold transition flex items-center justify-center gap-1.5 shadow-sm">
+          <span>🔑</span> <span>使用管理安全授權碼 (預設 PIN：8888) 直接解鎖登入</span>
         </button>
 
-        <div id="pinLoginBox" class="hidden space-y-2 pt-1 text-left">
+        <div id="pinLoginBox" class="space-y-2 pt-1 text-left">
           <label for="masterPinInput" class="block text-[11px] text-slate-400 font-semibold">輸入管理安全碼 (預設：8888)：</label>
           <div class="flex gap-2">
-            <input type="password" id="masterPinInput" placeholder="請輸入安全碼" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500" />
-            <button type="button" onclick="submitPinLogin()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-sm">
-              解鎖
+            <input type="password" id="masterPinInput" value="8888" placeholder="請輸入安全碼" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500" />
+            <button type="button" onclick="submitPinLogin()" class="px-5 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-sm">
+              解鎖登入
             </button>
           </div>
-          <p class="text-[10px] text-slate-500">※ 離線環境或本機預覽未連線 Google 時之備援驗證通道。</p>
+          <p class="text-[10px] text-slate-500">※ 尚未在 Google 註冊專屬 Client ID 或網路連線異常時之官方管理備援通道。</p>
         </div>
       </div>
     </div>
@@ -1355,11 +1358,30 @@
 
       <!-- Google OAuth Client ID Configuration -->
       <div class="space-y-2 pt-2 border-t border-slate-800 text-xs">
-        <label for="cfgGoogleClientId" class="block font-bold text-slate-200">🔑 Google OAuth 2.0 Web Client ID：</label>
-        <input type="text" id="cfgGoogleClientId" placeholder="例如：xxxxxxxxxxxx.apps.googleusercontent.com" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono text-[11px] focus:outline-none focus:border-indigo-500" />
-        <p class="text-[10px] text-slate-500">
-          ※ 預設使用展示用 Client ID。您可前往 Google Cloud Console 建立 Web 用戶端 ID 並在此填入，以啟用個人專屬一鍵登入。
-        </p>
+        <div class="flex items-center justify-between">
+          <label for="cfgGoogleClientId" class="font-bold text-slate-200">🔑 Google OAuth 2.0 Web Client ID：</label>
+          <a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="text-[11px] text-indigo-400 hover:text-indigo-300 underline font-semibold">
+            前往 Google Cloud Console ↗
+          </a>
+        </div>
+        <input type="text" id="cfgGoogleClientId" placeholder="例如：123456789012-xxxxxxxx.apps.googleusercontent.com" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono text-[11px] focus:outline-none focus:border-indigo-500" />
+        
+        <!-- Step-by-Step Setup Guide -->
+        <details class="rounded-xl bg-slate-950 border border-slate-800 p-3 text-[11px] text-slate-300 space-y-2">
+          <summary class="font-semibold text-indigo-400 cursor-pointer select-none hover:text-indigo-300">
+            📘 5 步驟取得個人專屬 Google Client ID（點擊展開教學）
+          </summary>
+          <div class="pt-2 space-y-1.5 text-slate-400 leading-relaxed border-t border-slate-800/80 mt-2">
+            <p>1. 前往 <a href="https://console.cloud.google.com/" target="_blank" class="text-sky-400 underline">Google Cloud Console</a> 並使用 Google 帳號登入。</p>
+            <p>2. 上方點擊專案選單 &gt;「<strong>建立新專案</strong>」（例：<code>AI-Stock-Web</code>）。</p>
+            <p>3. 左側選單「<strong>API 和服務</strong>」&gt;「<strong>OAuth 同意畫面</strong>」，類型選擇「<strong>外部</strong>」，填寫名稱與您的 Email，並在「<strong>測試使用者</strong>」加入您自己的 Gmail。</p>
+            <p>4. 左側選單「<strong>憑證</strong>」&gt;「<strong>+ 建立憑證</strong>」&gt;「<strong>OAuth 用戶端 ID</strong>」，類型選「<strong>網頁應用程式</strong>」。</p>
+            <p class="text-amber-300 font-semibold">5. 關鍵設定：在「已授權的 JavaScript 來源」填入您的 Cloudflare Pages 網址（末尾勿帶斜線）：<br>
+              <code class="text-white bg-slate-900 px-1.5 py-0.5 rounded border border-slate-700">https://ai-stock-ekh.pages.dev</code>
+            </p>
+            <p>6. 點擊建立，複製彈出視窗的「用戶端 ID」貼在上方輸入框，點擊「儲存資安設定」即完成！</p>
+          </div>
+        </details>
       </div>
 
       <!-- Master Recovery PIN Setting -->
