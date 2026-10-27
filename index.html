@@ -174,9 +174,13 @@
           <input type="checkbox" id="toggleAutoRefresh" onchange="toggleAutoRefreshQuote(this.checked)" class="rounded border-slate-700 text-cyan-500 focus:ring-0" />
           <span class="text-[11px]">盤中自動刷新(30s)</span>
         </label>
-        <button type="button" id="btnQuickSyncQuotes" onclick="syncLiveStockQuotes()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-600/90 hover:bg-cyan-500 text-white transition flex items-center gap-1.5 shadow-sm">
+        <button type="button" id="btnQuickSyncQuotes" onclick="syncLiveStockQuotes()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-600/90 hover:bg-cyan-500 text-white transition flex items-center gap-1.5 shadow-sm" title="向證交所 MIS 通道抓取最新盤中成交價">
           <span class="animate-spin hidden" id="syncSpinner">⏳</span>
           <span id="syncBtnLabel">⚡ 更新最新報價</span>
+        </button>
+        <button type="button" id="btnDeepSyncOfficial" onclick="syncOfficialDeepData()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600/90 hover:bg-indigo-500 text-white transition flex items-center gap-1.5 shadow-sm" title="向證交所、櫃買中心、集保所 (TDCC) 與公開資訊觀測站 (MOPS) 即時同步 400/1000張大戶、單月營收與本益比全數據">
+          <span class="animate-spin hidden" id="deepSyncSpinner">⏳</span>
+          <span id="deepSyncBtnLabel">🔄 官方籌碼/財報同步</span>
         </button>
         <button type="button" id="btnOpenCsvModal" onclick="openCsvModal()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-600/90 hover:bg-emerald-500 text-white transition flex items-center gap-1.5 shadow-sm">
           <span>📥 智慧匯入 / 匯出</span>
@@ -2952,6 +2956,120 @@
       }
     }
 
+    // =========================================================================
+    // DEEP SYNC OFFICIAL DATA (TDCC 400/1000 HOLDERS + MOPS REVENUE + PE/PB/YIELD)
+    // =========================================================================
+    async function syncOfficialDeepData() {
+      const spinner = document.getElementById('deepSyncSpinner');
+      const label = document.getElementById('deepSyncBtnLabel');
+      if (spinner) spinner.classList.remove('hidden');
+      if (label) label.textContent = '官方同步中...';
+
+      const codeList = state.stocks.map(s => s.id).join(',');
+      let updatedCount = 0;
+      let usedSource = '';
+
+      // 1. 優先嘗試呼叫 Cloudflare Pages Edge Function: /api/sync?type=deep_sync&codes=...
+      try {
+        const edgeUrl = `/api/sync?type=deep_sync&codes=${encodeURIComponent(codeList)}`;
+        const resp = await fetch(edgeUrl, { cache: 'no-cache' });
+        if (resp.ok) {
+          const res = await resp.json();
+          if (res && res.success && res.data) {
+            Object.values(res.data).forEach(item => {
+              const stock = state.stocks.find(s => s.id === item.id);
+              if (stock) {
+                if (item.holder400Pct !== undefined) {
+                  const prev400 = stock.holder400Pct;
+                  stock.holder400Pct = item.holder400Pct;
+                  if (prev400 && prev400 !== item.holder400Pct) {
+                    stock.holder400Diff = Math.round((item.holder400Pct - prev400) * 100) / 100;
+                  }
+                }
+                if (item.holder1000Pct !== undefined) {
+                  const prev1000 = stock.holder1000Pct;
+                  stock.holder1000Pct = item.holder1000Pct;
+                  if (prev1000 && prev1000 !== item.holder1000Pct) {
+                    stock.holder1000Diff = Math.round((item.holder1000Pct - prev1000) * 100) / 100;
+                  }
+                }
+                if (item.shareholdersCount) stock.shareholdersCount = item.shareholdersCount;
+                if (item.revLatest) stock.revLatest = item.revLatest;
+                if (item.revYoY !== undefined) stock.revYoY = item.revYoY;
+                if (item.revMoM !== undefined) stock.revMoM = item.revMoM;
+                if (item.revCumYoY !== undefined) stock.revCumYoY = item.revCumYoY;
+                if (item.pe) stock.pe = item.pe;
+                if (item.pb) stock.pb = item.pb;
+                if (item.yieldPct) stock.yieldPct = item.yieldPct;
+                
+                // 同步校準圖表最新週集保大戶持股比
+                if (stock.holderHistory && Array.isArray(stock.holderHistory.h400)) {
+                  stock.holderHistory.h400[stock.holderHistory.h400.length - 1] = stock.holder400Pct;
+                  stock.holderHistory.h1000[stock.holderHistory.h1000.length - 1] = stock.holder1000Pct;
+                }
+                updatedCount++;
+              }
+            });
+            usedSource = 'Cloudflare 官方開放資料邊緣通道 (TDCC+MOPS+TWSE)';
+          }
+        }
+      } catch (e) {
+        // Edge 未連線或本機預覽模式
+      }
+
+      // 2. 本機或靜態空間備援：讀取同源之 stock_database.json
+      if (updatedCount === 0) {
+        try {
+          const localResp = await fetch('./stock_database.json', { cache: 'no-cache' });
+          if (localResp.ok) {
+            const dbData = await localResp.json();
+            if (Array.isArray(dbData)) {
+              dbData.forEach(item => {
+                const stock = state.stocks.find(s => s.id === item.id);
+                if (stock) {
+                  if (item.holder400Pct) stock.holder400Pct = item.holder400Pct;
+                  if (item.holder400Diff) stock.holder400Diff = item.holder400Diff;
+                  if (item.holder1000Pct) stock.holder1000Pct = item.holder1000Pct;
+                  if (item.holder1000Diff) stock.holder1000Diff = item.holder1000Diff;
+                  if (item.shareholdersCount) stock.shareholdersCount = item.shareholdersCount;
+                  if (item.revLatest) stock.revLatest = item.revLatest;
+                  if (item.revYoY !== undefined) stock.revYoY = item.revYoY;
+                  if (item.revMoM !== undefined) stock.revMoM = item.revMoM;
+                  if (item.revCumYoY !== undefined) stock.revCumYoY = item.revCumYoY;
+                  if (item.pe) stock.pe = item.pe;
+                  if (item.pb) stock.pb = item.pb;
+                  if (item.yieldPct) stock.yieldPct = item.yieldPct;
+                  if (item.cbCode && item.cbCode !== '無') stock.cbCode = item.cbCode;
+                  
+                  if (stock.holderHistory && Array.isArray(stock.holderHistory.h400)) {
+                    stock.holderHistory.h400[stock.holderHistory.h400.length - 1] = stock.holder400Pct;
+                    stock.holderHistory.h1000[stock.holderHistory.h1000.length - 1] = stock.holder1000Pct;
+                  }
+                  updatedCount++;
+                }
+              });
+              usedSource = '本地高精 stock_database.json 資料庫';
+            }
+          }
+        } catch (e2) {}
+      }
+
+      saveState();
+      renderPortfolioTable();
+      populateStockSelects();
+      if (state.mainView === 'chips') renderChipsView();
+      if (state.mainView === 'financials') renderFinancialsView();
+
+      if (spinner) spinner.classList.add('hidden');
+      if (label) label.textContent = '🔄 官方籌碼/財報同步';
+
+      if (updatedCount > 0) {
+        showToast(`🎉 成功透過【${usedSource}】校驗並更新 ${updatedCount} 檔標的之真實大戶與營收數據！`);
+      } else {
+        showToast('⚠️ 目前尚未能連線至官方 API，請檢查網路或於本機執行 python tw_stock_data_engine.py！');
+      }
+    }
+
     async function testCloudflareEdgeApi() {
       try {
         const resp = await fetch('/api/quote?codes=2330,3324');
@@ -3229,7 +3347,10 @@
       closeCsvModal();
       renderPortfolioTable();
       populateStockSelects();
-      showToast(`🎉 智慧匯入成功！已校驗更新 ${count} 檔投資標的！`);
+      showToast(`🎉 智慧匯入成功！已更新 ${count} 檔投資標的，正在自動校驗官方大戶與營收...`);
+      setTimeout(() => {
+        syncOfficialDeepData();
+      }, 500);
     }
 
     function handleCsvFileUpload(event) {
@@ -5202,6 +5323,14 @@
           badge.className = 'px-2 py-0.5 text-[11px] font-semibold rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1';
           badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-dot"></span><span>Cloudflare Pages 連線中</span>';
         }
+      }
+
+      // 若持股倉內有標的仍為預設範本數值 (65%/55%)，自動於背景執行一次官方真實數據校驗
+      const hasMockDefaults = state.stocks.some(s => s.holder400Pct === 65.0 && s.holder1000Pct === 55.0);
+      if (hasMockDefaults) {
+        setTimeout(() => {
+          syncOfficialDeepData();
+        }, 1200);
       }
     });
 
