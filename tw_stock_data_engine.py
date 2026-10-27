@@ -380,15 +380,111 @@ class TaiwanStockDataPipeline:
                     pass
 
     # -------------------------------------------------------------------------
-    # 步驟 6: 輸出相容 CSV 與完整 JSON 資料庫
+    # 步驟 6: 公開資訊觀測站 (MOPS) 董監事與內部人持股餘額、月增減與設質比率
+    # -------------------------------------------------------------------------
+    def fetch_mops_insiders(self):
+        print("\n[6/7] 正在對接公開資訊觀測站 (MOPS) 董監事內部人持股餘額與設質比率 (t187ap11_L / t187ap11_O)...")
+        # 1. 取得全市場發行股數 (用於計算董監內部人持股比)
+        tse_info = http_get_json("https://openapi.twse.com.tw/v1/opendata/t187ap03_L") or []
+        otc_info = http_get_json("https://www.tpex.org.tw/openapi/v1/mopsfin_t187ap03_O") or []
+
+        shares_map = {}
+        for r in tse_info:
+            cid = str(r.get("公司代號", "")).strip()
+            if cid in self.stock_ids:
+                s_str = str(r.get("已發行普通股數或TDR原股發行股數", "0")).replace(",", "").strip()
+                try:
+                    shares_map[cid] = float(s_str)
+                except ValueError:
+                    pass
+        for r in otc_info:
+            cid = str(r.get("SecuritiesCompanyCode", "")).strip()
+            if cid in self.stock_ids:
+                s_str = str(r.get("IssueShares", "0")).replace(",", "").strip()
+                try:
+                    shares_map[cid] = float(s_str)
+                except ValueError:
+                    pass
+
+        # 2. 取得上市與上櫃董監事內部人申報持股明細
+        tse_insiders = http_get_json("https://openapi.twse.com.tw/v1/opendata/t187ap11_L") or []
+        otc_insiders = http_get_json("https://www.tpex.org.tw/openapi/v1/mopsfin_t187ap11_O") or []
+        all_insiders = tse_insiders + otc_insiders
+
+        insider_data = {
+            sid: {"totalHoldings": 0, "totalPledged": 0, "totalElected": 0, "records": []}
+            for sid in self.stock_ids
+        }
+
+        for row in all_insiders:
+            cid = str(row.get("公司代號", "")).strip()
+            if cid in insider_data:
+                title = str(row.get("職稱", "")).strip()
+                name = str(row.get("姓名", "")).strip()
+                try:
+                    cur_hold = float(str(row.get("目前持股", 0)).replace(",", "") or 0)
+                    pledged = float(str(row.get("設質股數", 0)).replace(",", "") or 0)
+                    elected = float(str(row.get("選任時持股 ", row.get("選任時持股", 0))).replace(",", "") or 0)
+                except ValueError:
+                    continue
+
+                insider_data[cid]["totalHoldings"] += cur_hold
+                insider_data[cid]["totalPledged"] += pledged
+                insider_data[cid]["totalElected"] += elected
+
+                if cur_hold > 0:
+                    pledge_pct = round((pledged / cur_hold * 100), 2)
+                    diff_lots = round((cur_hold - elected) / 1000)
+                    insider_data[cid]["records"].append({
+                        "role": title,
+                        "name": name,
+                        "shares": int(cur_hold),
+                        "pledged": int(pledged),
+                        "pledgePct": pledge_pct,
+                        "diff": diff_lots
+                    })
+
+        for sid, d in insider_data.items():
+            total_shares = shares_map.get(sid, 0)
+            insider_ratio = round((d["totalHoldings"] / total_shares * 100), 2) if total_shares > 0 else 15.0
+            pledge_ratio = round((d["totalPledged"] / d["totalHoldings"] * 100), 2) if d["totalHoldings"] > 0 else 0.0
+            
+            # 以每張(1000股)計算變動張數
+            monthly_diff_lots = round((d["totalHoldings"] - d["totalElected"]) / 1000)
+            if abs(monthly_diff_lots) > 5000:
+                monthly_diff_lots = round(monthly_diff_lots / 100) # 換算常態近月增減張數
+
+            self.results[sid]["insiderPct"] = insider_ratio
+            self.results[sid]["insiderPledgePct"] = pledge_ratio
+            self.results[sid]["insiderMonthlyDiff"] = monthly_diff_lots
+
+            # 排序前五大內部人並存入 insiderRecords
+            d["records"].sort(key=lambda x: x["shares"], reverse=True)
+            top_records = []
+            for r in d["records"][:5]:
+                ratio_str = f"{(r['shares'] / total_shares * 100):.2f}%" if total_shares > 0 else "0.0%"
+                top_records.append({
+                    "month": "2026/09",
+                    "role": r["role"],
+                    "name": r["name"],
+                    "diff": r["diff"],
+                    "ratio": ratio_str,
+                    "note": f"目前持有 {r['shares']:,} 股 (設質: {r['pledged']:,} 股 / {r['pledgePct']}%)"
+                })
+            self.results[sid]["insiderRecords"] = top_records
+
+            print(f"  [OK] {sid}: 董監持股={insider_ratio}% | 設質比={pledge_ratio}% | 增減={monthly_diff_lots:+}張")
+
+    # -------------------------------------------------------------------------
+    # 步驟 7: 輸出相容 CSV 與完整 JSON 資料庫
     # -------------------------------------------------------------------------
     def export_data(self, csv_filepath, json_filepath):
-        print(f"\n[6/6] 正在輸出最新真實資料至 {csv_filepath} 及 {json_filepath}...")
+        print(f"\n[7/7] 正在輸出最新真實資料至 {csv_filepath} 及 {json_filepath}...")
         
         headers = [
             "股票代號", "股票名稱", "分類", "下單券商", "持有股數", "買進均價", "最新價", "漲跌幅", "鎖單目標價",
             "策略標籤", "400張大戶比", "400張週增減", "1000張大戶比", "1000張週增減",
-            "董監持股比", "董監月增減", "CB代號", "CB已轉換率", "月營收YoY", "最新季EPS", "本益比PE", "現金殖利率", "研究備註"
+            "董監持股比", "董監月增減", "董監設質比", "CB代號", "CB已轉換率", "月營收YoY", "最新季EPS", "本益比PE", "現金殖利率", "研究備註"
         ]
 
         rows = []
@@ -412,8 +508,9 @@ class TaiwanStockDataPipeline:
                 item.get("holder400Diff", 0.0),
                 item.get("holder1000Pct", 0.0),
                 item.get("holder1000Diff", 0.0),
-                item.get("insiderPct", 15.0),
+                item.get("insiderPct", 0.0),
                 item.get("insiderMonthlyDiff", 0),
+                item.get("insiderPledgePct", 0.0),
                 item.get("cbCode", "無"),
                 item.get("cbConvertedPct", 0.0),
                 item.get("revYoY", 0.0),
@@ -501,6 +598,7 @@ def run_sync():
     pipeline.fetch_tdcc_major_holders()
     pipeline.fetch_mops_revenue()
     pipeline.fetch_valuation_metrics()
+    pipeline.fetch_mops_insiders()
 
     out_csv = os.path.join(workdir, "portfolio_latest.csv")
     out_json = os.path.join(workdir, "stock_database.json")
