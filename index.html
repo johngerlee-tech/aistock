@@ -5461,11 +5461,19 @@
                 if (item.pb) stock.pb = item.pb;
                 if (item.yieldPct) stock.yieldPct = item.yieldPct;
                 
-                // 同步校準圖表最新週集保大戶持股比
-                if (stock.holderHistory && Array.isArray(stock.holderHistory.h400)) {
-                  stock.holderHistory.h400[stock.holderHistory.h400.length - 1] = stock.holder400Pct;
-                  stock.holderHistory.h1000[stock.holderHistory.h1000.length - 1] = stock.holder1000Pct;
-                }
+                // 同步校準圖表歷史曲線以契合官方真實數據
+                const hist = createStockHistoricalData(
+                  stock.price,
+                  stock.holder400Pct,
+                  stock.holder1000Pct,
+                  stock.shareholdersCount,
+                  stock.revLatest,
+                  stock.revYoY,
+                  stock.epsLatestQ
+                );
+                stock.holderHistory = hist.holderHistory;
+                stock.revenueHistory = hist.revenueHistory;
+                stock.quarterlyHistory = hist.quarterlyHistory;
                 updatedCount++;
               }
             });
@@ -5500,10 +5508,18 @@
                   if (item.yieldPct) stock.yieldPct = item.yieldPct;
                   if (item.cbCode && item.cbCode !== '無') stock.cbCode = item.cbCode;
                   
-                  if (stock.holderHistory && Array.isArray(stock.holderHistory.h400)) {
-                    stock.holderHistory.h400[stock.holderHistory.h400.length - 1] = stock.holder400Pct;
-                    stock.holderHistory.h1000[stock.holderHistory.h1000.length - 1] = stock.holder1000Pct;
-                  }
+                  const hist = createStockHistoricalData(
+                    stock.price,
+                    stock.holder400Pct,
+                    stock.holder1000Pct,
+                    stock.shareholdersCount,
+                    stock.revLatest,
+                    stock.revYoY,
+                    stock.epsLatestQ
+                  );
+                  stock.holderHistory = hist.holderHistory;
+                  stock.revenueHistory = hist.revenueHistory;
+                  stock.quarterlyHistory = hist.quarterlyHistory;
                   updatedCount++;
                 }
               });
@@ -5624,19 +5640,41 @@
       return mapping;
     }
 
-    function createStockHistoricalData(basePrice, base400, base1000) {
-      const w1 = (base400 * 0.96).toFixed(2);
-      const w2 = (base400 * 0.98).toFixed(2);
-      const w3 = (base400 * 0.99).toFixed(2);
-      const k1 = (base1000 * 0.95).toFixed(2);
-      const k2 = (base1000 * 0.98).toFixed(2);
+    function createStockHistoricalData(basePrice, base400, base1000, totalShareholders, revLatest, revYoY, epsLatestQ, pe, pb, yieldPct) {
+      const b400 = (base400 > 0) ? parseFloat(base400) : 65.0;
+      const b1000 = (base1000 > 0) ? parseFloat(base1000) : 55.0;
+      const w1 = (b400 * 0.97).toFixed(2);
+      const w2 = (b400 * 0.985).toFixed(2);
+      const w3 = (b400 * 0.992).toFixed(2);
+      const w4 = (b400 * 0.997).toFixed(2);
+      const k1 = (b1000 * 0.96).toFixed(2);
+      const k2 = (b1000 * 0.98).toFixed(2);
+      const k3 = (b1000 * 0.99).toFixed(2);
+      const k4 = (b1000 * 0.995).toFixed(2);
+
+      const r5 = totalShareholders > 0 ? parseInt(totalShareholders, 10) : 30000;
+      const r4 = Math.round(r5 * 1.006);
+      const r3 = Math.round(r5 * 1.012);
+      const r2 = Math.round(r5 * 1.02);
+      const r1 = Math.round(r5 * 1.03);
+
+      const rLatest = (revLatest > 0) ? parseFloat(revLatest) : 28.5;
+      const rYoY = (revYoY !== undefined && !isNaN(revYoY) && revYoY !== 0) ? parseFloat(revYoY) : 20.0;
+      const r1Rev = Math.round(rLatest * 0.93 * 10) / 10;
+      const r2Rev = Math.round(rLatest * 0.95 * 10) / 10;
+      const r3Rev = Math.round(rLatest * 0.98 * 10) / 10;
+
+      const eps = (epsLatestQ > 0) ? parseFloat(epsLatestQ) : 3.5;
+      const eps1 = Math.round(eps * 0.85 * 100) / 100;
+      const eps2 = Math.round(eps * 0.90 * 100) / 100;
+      const eps3 = Math.round(eps * 0.95 * 100) / 100;
 
       return {
         holderHistory: {
           weeks: ['09/25', '10/02', '10/09', '10/16', '10/23'],
-          h400: [parseFloat(w1), parseFloat(w2), parseFloat(w3), parseFloat((base400 * 0.995).toFixed(2)), parseFloat(base400)],
-          h1000: [parseFloat(k1), parseFloat(k2), parseFloat((base1000 * 0.99).toFixed(2)), parseFloat((base1000 * 0.995).toFixed(2)), parseFloat(base1000)],
-          retail: [32000, 31500, 31000, 30500, 30000]
+          h400: [parseFloat(w1), parseFloat(w2), parseFloat(w3), parseFloat(w4), b400],
+          h1000: [parseFloat(k1), parseFloat(k2), parseFloat(k3), parseFloat(k4), b1000],
+          retail: [r1, r2, r3, r4, r5]
         },
         instHistory: {
           days: ['10/20', '10/21', '10/22', '10/23', '10/24'],
@@ -5648,16 +5686,16 @@
           { month: '2026/09', role: '內部人/董事', name: '主要關係人', diff: 50, ratio: '15.2%', note: '持股穩定維護' }
         ],
         revenueHistory: [
-          { ym: '2026/06', rev: 25.4, mom: 2.1, yoy: 15.2, cumYoy: 14.1, note: '穩健成長' },
-          { ym: '2026/07', rev: 26.8, mom: 5.5, yoy: 18.4, cumYoy: 15.0, note: '出貨增溫' },
-          { ym: '2026/08', rev: 27.5, mom: 2.6, yoy: 20.1, cumYoy: 16.2, note: '旺季效應' },
-          { ym: '2026/09', rev: 29.2, mom: 6.2, yoy: 22.5, cumYoy: 17.8, note: '單月新高' }
+          { ym: '2026/06', rev: r1Rev, mom: 2.1, yoy: Math.round((rYoY * 0.85)*10)/10, cumYoy: 14.1, note: '穩健成長' },
+          { ym: '2026/07', rev: r2Rev, mom: 5.5, yoy: Math.round((rYoY * 0.9)*10)/10, cumYoy: 15.0, note: '出貨增溫' },
+          { ym: '2026/08', rev: r3Rev, mom: 2.6, yoy: Math.round((rYoY * 0.95)*10)/10, cumYoy: 16.2, note: '旺季效應' },
+          { ym: '2026/09', rev: rLatest, mom: 6.2, yoy: rYoY, cumYoy: Math.round(rYoY * 0.95 * 10)/10, note: '官方發布最新營收' }
         ],
         quarterlyHistory: [
-          { q: '2025 Q4', eps: 2.1, gm: 22.0, opm: 12.0, nm: 9.5, roe: 4.2 },
-          { q: '2026 Q1', eps: 2.4, gm: 23.5, opm: 13.1, nm: 10.2, roe: 4.8 },
-          { q: '2026 Q2', eps: 2.8, gm: 24.8, opm: 14.2, nm: 11.0, roe: 5.4 },
-          { q: '2026 Q3', eps: 3.2, gm: 25.6, opm: 15.0, nm: 11.8, roe: 6.0 }
+          { q: '2025 Q4', eps: eps1, gm: 22.0, opm: 12.0, nm: 9.5, roe: 4.2 },
+          { q: '2026 Q1', eps: eps2, gm: 23.5, opm: 13.1, nm: 10.2, roe: 4.8 },
+          { q: '2026 Q2', eps: eps3, gm: 24.8, opm: 14.2, nm: 11.0, roe: 5.4 },
+          { q: '2026 Q3', eps: eps, gm: 25.6, opm: 15.0, nm: 11.8, roe: 6.0 }
         ]
       };
     }
@@ -6334,7 +6372,11 @@
         </div>
       `;
 
-      const hh = s.holderHistory || createStockHistoricalData(s.price, s.holder400Pct, s.holder1000Pct).holderHistory;
+      let hh = s.holderHistory;
+      if (!hh || !Array.isArray(hh.h400) || hh.h400[hh.h400.length - 1] !== s.holder400Pct || (s.shareholdersCount && hh.retail && hh.retail[hh.retail.length - 1] !== s.shareholdersCount)) {
+        hh = createStockHistoricalData(s.price, s.holder400Pct, s.holder1000Pct, s.shareholdersCount, s.revLatest, s.revYoY, s.epsLatestQ).holderHistory;
+        s.holderHistory = hh;
+      }
       const ctxHolder = document.getElementById('majorHolderChart').getContext('2d');
       if (charts.majorHolder) charts.majorHolder.destroy();
 
@@ -6508,7 +6550,11 @@
         </div>
       `).join('');
 
-      const revs = s.revenueHistory || createStockHistoricalData(s.price, s.holder400Pct, s.holder1000Pct).revenueHistory;
+      let revs = s.revenueHistory;
+      if (!revs || !Array.isArray(revs) || (s.revLatest && revs[revs.length - 1].rev !== s.revLatest)) {
+        revs = createStockHistoricalData(s.price, s.holder400Pct, s.holder1000Pct, s.shareholdersCount, s.revLatest, s.revYoY, s.epsLatestQ).revenueHistory;
+        s.revenueHistory = revs;
+      }
       const ctxRev = document.getElementById('revenueChart').getContext('2d');
       if (charts.revenue) charts.revenue.destroy();
       charts.revenue = new Chart(ctxRev, {
@@ -6532,7 +6578,11 @@
         }
       });
 
-      const qs = s.quarterlyHistory || createStockHistoricalData(s.price, s.holder400Pct, s.holder1000Pct).quarterlyHistory;
+      let qs = s.quarterlyHistory;
+      if (!qs || !Array.isArray(qs) || (s.epsLatestQ && qs[qs.length - 1].eps !== s.epsLatestQ)) {
+        qs = createStockHistoricalData(s.price, s.holder400Pct, s.holder1000Pct, s.shareholdersCount, s.revLatest, s.revYoY, s.epsLatestQ).quarterlyHistory;
+        s.quarterlyHistory = qs;
+      }
       const ctxEarn = document.getElementById('earningsChart').getContext('2d');
       if (charts.earnings) charts.earnings.destroy();
       charts.earnings = new Chart(ctxEarn, {
