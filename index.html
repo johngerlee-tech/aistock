@@ -56,6 +56,54 @@
       50% { opacity: 0.5; transform: scale(1.05); }
     }
     .pulse-dot { animation: pulse-subtle 2s infinite ease-in-out; }
+
+    /* 專業看盤 UI：股價變動光芒閃爍特效 (XQ / 券商專業等級) */
+    @keyframes flash-glow-red {
+      0% {
+        background-color: rgba(239, 68, 68, 0.45);
+        box-shadow: inset 0 0 14px rgba(239, 68, 68, 0.65), 0 0 10px rgba(239, 68, 68, 0.45);
+      }
+      25% {
+        background-color: rgba(239, 68, 68, 0.28);
+        box-shadow: inset 0 0 10px rgba(239, 68, 68, 0.4), 0 0 6px rgba(239, 68, 68, 0.25);
+      }
+      100% {
+        background-color: transparent;
+        box-shadow: none;
+      }
+    }
+    @keyframes flash-glow-green {
+      0% {
+        background-color: rgba(16, 185, 129, 0.45);
+        box-shadow: inset 0 0 14px rgba(16, 185, 129, 0.65), 0 0 10px rgba(16, 185, 129, 0.45);
+      }
+      25% {
+        background-color: rgba(16, 185, 129, 0.28);
+        box-shadow: inset 0 0 10px rgba(16, 185, 129, 0.4), 0 0 6px rgba(16, 185, 129, 0.25);
+      }
+      100% {
+        background-color: transparent;
+        box-shadow: none;
+      }
+    }
+    .flash-price-up {
+      animation: flash-glow-red 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+      border-radius: 4px;
+    }
+    .flash-price-up .price-val {
+      text-shadow: 0 0 10px rgba(239, 68, 68, 0.95), 0 0 18px rgba(239, 68, 68, 0.5);
+      transform: scale(1.05);
+      transition: transform 0.25s ease-out;
+    }
+    .flash-price-down {
+      animation: flash-glow-green 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+      border-radius: 4px;
+    }
+    .flash-price-down .price-val {
+      text-shadow: 0 0 10px rgba(16, 185, 129, 0.95), 0 0 18px rgba(16, 185, 129, 0.5);
+      transform: scale(1.05);
+      transition: transform 0.25s ease-out;
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white">
@@ -196,9 +244,10 @@
 
       <!-- Action Buttons & Auto Refresh -->
       <div class="flex items-center gap-2">
-        <label class="hidden sm:flex items-center gap-1.5 text-xs text-slate-300 bg-slate-950 border border-slate-800 px-2.5 py-1.5 rounded-lg cursor-pointer hover:border-slate-700 transition">
-          <input type="checkbox" id="toggleAutoRefresh" onchange="toggleAutoRefreshQuote(this.checked)" class="rounded border-slate-700 text-cyan-500 focus:ring-0" />
-          <span class="text-[11px]">盤中自動刷新(30s)</span>
+        <label id="autoRefreshContainer" class="hidden sm:flex items-center gap-2 text-xs text-slate-300 bg-slate-950/90 border border-slate-800 px-2.5 py-1.5 rounded-lg cursor-pointer hover:border-slate-700 transition select-none shadow-sm" title="台股開盤時段 (週一至週五 09:00~13:30) 自動啟動 10 秒即時刷新，收盤自動暫停以節省流量與電量">
+          <input type="checkbox" id="toggleAutoRefresh" onchange="toggleAutoRefreshQuote(this.checked, true)" class="rounded border-slate-700 text-cyan-500 focus:ring-0 cursor-pointer" />
+          <span id="autoRefreshStatusDot" class="w-2 h-2 rounded-full bg-slate-500 transition-all"></span>
+          <span id="autoRefreshLabel" class="text-[11px] font-medium text-slate-300">開盤自動刷新(10s)</span>
         </label>
         <button type="button" id="btnQuickSyncQuotes" onclick="syncLiveStockQuotes()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-600/90 hover:bg-cyan-500 text-white transition flex items-center gap-1.5 shadow-sm" title="向證交所 MIS 通道抓取最新盤中成交價">
           <span class="animate-spin hidden" id="syncSpinner">⏳</span>
@@ -5888,6 +5937,9 @@
       quickNoteStockId: null,
       lastSyncTime: null,
       autoRefreshTimer: null,
+      userManualAutoRefresh: null,
+      priceFlashMap: {},
+      priceFlashTimeout: null,
       cloudSyncStatus: 'idle',
       lastCloudSyncTime: null,
       cloudSaveTimer: null,
@@ -6501,6 +6553,7 @@
       updateHeaderAuthBadge(user);
       const d1Acc = document.getElementById('d1CurrentAccount');
       if (d1Acc && user) d1Acc.textContent = user.email || 'main_admin';
+      checkAndApplyAutoRefresh(false);
     }
 
     function lockSecurityGate() {
@@ -6856,14 +6909,165 @@
     }
 
     // =========================================================================
+    // 台股交易時段判定 (週一至週五 09:00 ~ 13:30，以台灣時區 Asia/Taipei 為準)
+    // =========================================================================
+    function getTaiwanDate() {
+      try {
+        const now = new Date();
+        const twString = now.toLocaleString('en-US', { timeZone: 'Asia/Taipei' });
+        return new Date(twString);
+      } catch (e) {
+        const d = new Date();
+        const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+        return new Date(utc + (3600000 * 8));
+      }
+    }
+
+    function isTaiwanStockMarketOpen() {
+      const tw = getTaiwanDate();
+      const day = tw.getDay(); // 0:週日, 1:週一 ~ 5:週五, 6:週六
+      const mins = tw.getHours() * 60 + tw.getMinutes();
+      // 台股一般盤交易時段：週一至週五 09:00 (540分) 至 13:30 (810分)
+      return (day >= 1 && day <= 5) && (mins >= 540 && mins <= 810);
+    }
+
+    function getTaiwanMarketStatusInfo() {
+      const tw = getTaiwanDate();
+      const day = tw.getDay();
+      const mins = tw.getHours() * 60 + tw.getMinutes();
+      const isWeekday = (day >= 1 && day <= 5);
+
+      if (!isWeekday) {
+        return { isOpen: false, statusText: '週末休市 (暫停刷新)', dotClass: 'bg-slate-500' };
+      }
+      if (mins < 540) {
+        return { isOpen: false, statusText: '盤前未開盤 (暫停刷新)', dotClass: 'bg-amber-500/80' };
+      }
+      if (mins > 810) {
+        return { isOpen: false, statusText: '今日已收盤 (暫停刷新)', dotClass: 'bg-slate-500' };
+      }
+      return { isOpen: true, statusText: '開盤刷新中 (10s)', dotClass: 'bg-emerald-400 animate-pulse' };
+    }
+
+    function updateAutoRefreshUI(isActive, customLabel = null) {
+      const checkbox = document.getElementById('toggleAutoRefresh');
+      const dot = document.getElementById('autoRefreshStatusDot');
+      const label = document.getElementById('autoRefreshLabel');
+      const marketInfo = getTaiwanMarketStatusInfo();
+
+      if (checkbox) {
+        checkbox.checked = isActive;
+      }
+      if (dot) {
+        dot.className = `w-2 h-2 rounded-full transition-all ${isActive ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse' : (marketInfo.dotClass || 'bg-slate-500')}`;
+      }
+      if (label) {
+        if (customLabel) {
+          label.textContent = customLabel;
+        } else if (isActive) {
+          label.textContent = '開盤刷新中 (10s)';
+        } else {
+          label.textContent = marketInfo.statusText;
+        }
+      }
+    }
+
+    function startAutoRefresh(intervalMs = 10000, isSilent = true) {
+      if (state.autoRefreshTimer) {
+        clearInterval(state.autoRefreshTimer);
+        state.autoRefreshTimer = null;
+      }
+      syncLiveStockQuotes(isSilent);
+      state.autoRefreshTimer = setInterval(() => {
+        syncLiveStockQuotes(true);
+      }, intervalMs);
+
+      updateAutoRefreshUI(true, '開盤刷新中 (10s)');
+    }
+
+    function stopAutoRefresh(showToastMsg = false) {
+      if (state.autoRefreshTimer) {
+        clearInterval(state.autoRefreshTimer);
+        state.autoRefreshTimer = null;
+      }
+      updateAutoRefreshUI(false);
+      if (showToastMsg) {
+        showToast('已停止即時報價自動刷新');
+      }
+    }
+
+    function toggleAutoRefreshQuote(enabled, isManual = true) {
+      if (isManual) {
+        state.userManualAutoRefresh = enabled;
+      }
+
+      if (enabled) {
+        startAutoRefresh(10000, false);
+        showToast('已啟動 10 秒即時報價自動刷新！');
+      } else {
+        stopAutoRefresh(true);
+      }
+    }
+
+    function checkAndApplyAutoRefresh(isInitialCheck = false) {
+      const marketOpen = isTaiwanStockMarketOpen();
+      const marketInfo = getTaiwanMarketStatusInfo();
+
+      // 若使用者明確手動覆蓋設定
+      if (state.userManualAutoRefresh === true) {
+        if (!state.autoRefreshTimer) {
+          startAutoRefresh(10000, true);
+        }
+        updateAutoRefreshUI(true, '手動刷新中 (10s)');
+        return;
+      }
+
+      if (state.userManualAutoRefresh === false && !isInitialCheck) {
+        updateAutoRefreshUI(false, marketInfo.statusText);
+        return;
+      }
+
+      // 依開盤狀態自動啟動或停止
+      if (marketOpen) {
+        if (!state.autoRefreshTimer) {
+          startAutoRefresh(10000, true);
+          if (!isInitialCheck) {
+            showToast('台股 09:00 已開盤！系統已自動啟動 10 秒即時行情刷新。');
+          }
+        } else {
+          updateAutoRefreshUI(true, '開盤刷新中 (10s)');
+        }
+      } else {
+        if (state.autoRefreshTimer) {
+          stopAutoRefresh(false);
+          if (!isInitialCheck) {
+            showToast('台股 13:30 已收盤，系統已自動暫停背景刷新以節省電量與流量。');
+          }
+        } else {
+          updateAutoRefreshUI(false, marketInfo.statusText);
+        }
+      }
+    }
+
+    // =========================================================================
     // REAL-TIME QUOTE SYNC LOGIC (CLOUDFLARE EDGE WORKER / TWSE MIS)
     // =========================================================================
-    async function syncLiveStockQuotes() {
+    async function syncLiveStockQuotes(isSilent = false) {
       const btn = document.getElementById('btnQuickSyncQuotes');
       const spinner = document.getElementById('syncSpinner');
       const label = document.getElementById('syncBtnLabel');
-      if (spinner) spinner.classList.remove('hidden');
-      if (label) label.textContent = '同步中...';
+      if (!isSilent) {
+        if (spinner) spinner.classList.remove('hidden');
+        if (label) label.textContent = '同步中...';
+      }
+
+      // 記錄前一次報價以比對漲跌光芒特效
+      const prevPrices = {};
+      state.stocks.forEach(s => {
+        if (s && s.id) {
+          prevPrices[s.id] = Number(s.price) || 0;
+        }
+      });
 
       const codeList = state.stocks.map(s => s.id).join(',');
       let updatedCount = 0;
@@ -6946,6 +7150,18 @@
         }
       }
 
+      // 比對價格變動並設定 XQ 級光芒閃爍狀態 (上漲: 'up', 下跌: 'down')
+      state.priceFlashMap = {};
+      let hasPriceChange = false;
+      state.stocks.forEach(s => {
+        const oldP = prevPrices[s.id];
+        const newP = Number(s.price) || 0;
+        if (oldP > 0 && newP > 0 && Math.abs(newP - oldP) >= 0.001) {
+          state.priceFlashMap[s.id] = newP > oldP ? 'up' : 'down';
+          hasPriceChange = true;
+        }
+      });
+
       state.lastSyncTime = new Date().toLocaleTimeString('zh-TW', { hour12: false });
       const syncLabel = document.getElementById('lastSyncTimeLabel');
       if (syncLabel) syncLabel.textContent = state.lastSyncTime;
@@ -6968,26 +7184,21 @@
         if (state.mainView === 'screener') renderScreenerTable(false);
       }
 
+      // 閃爍 1.5 秒後自動清除光芒地圖，避免後續篩選或操作時重播
+      if (hasPriceChange) {
+        if (state.priceFlashTimeout) clearTimeout(state.priceFlashTimeout);
+        state.priceFlashTimeout = setTimeout(() => {
+          state.priceFlashMap = {};
+          state.priceFlashTimeout = null;
+        }, 1600);
+      }
+
       if (spinner) spinner.classList.add('hidden');
       if (label) label.textContent = '⚡ 更新最新報價';
 
-      const modeText = usedEdge ? 'Cloudflare Edge 邊緣伺服器' : '即時通訊管線';
-      showToast(`已透過 ${modeText} 更新 ${updatedCount} 檔標的報價！(${state.lastSyncTime})`);
-    }
-
-    function toggleAutoRefreshQuote(enabled) {
-      if (state.autoRefreshTimer) {
-        clearInterval(state.autoRefreshTimer);
-        state.autoRefreshTimer = null;
-      }
-      if (enabled) {
-        syncLiveStockQuotes();
-        state.autoRefreshTimer = setInterval(() => {
-          syncLiveStockQuotes();
-        }, 30000);
-        showToast('已啟動盤中 30 秒自動刷新！');
-      } else {
-        showToast('已停止自動刷新');
+      if (!isSilent) {
+        const modeText = usedEdge ? 'Cloudflare Edge 邊緣伺服器' : '即時通訊管線';
+        showToast(`已透過 ${modeText} 更新 ${updatedCount} 檔標的報價！(${state.lastSyncTime})`);
       }
     }
 
@@ -7937,6 +8148,9 @@
           </span>
         `;
 
+        const flashType = state.priceFlashMap ? state.priceFlashMap[s.id] : null;
+        const flashClass = flashType === 'up' ? 'flash-price-up' : (flashType === 'down' ? 'flash-price-down' : '');
+
         return `
           <tr class="hover:bg-slate-800/50 transition group">
             <td class="py-3 px-3">
@@ -7951,8 +8165,8 @@
               </div>
             </td>
 
-            <td class="py-3 px-2.5 text-right">
-              <div class="text-sm font-bold ${priceColor}">$${formatNumber(s.price, 1)}</div>
+            <td class="py-3 px-2.5 text-right transition-colors rounded ${flashClass}">
+              <div class="text-sm font-bold ${priceColor} price-val transition-all duration-300">$${formatNumber(s.price, 1)}</div>
               <div class="text-[11px] font-semibold ${priceColor}">${changeSign}${s.changePct.toFixed(2)}%</div>
             </td>
 
@@ -8906,6 +9120,9 @@
           return `<span class="px-1.5 py-0.5 rounded text-[10px] font-medium ${col} whitespace-nowrap">${t}</span>`;
         }).join(' ');
 
+        const flashType = state.priceFlashMap ? state.priceFlashMap[item.id] : null;
+        const flashClass = flashType === 'up' ? 'flash-price-up' : (flashType === 'down' ? 'flash-price-down' : '');
+
         return `
           <tr class="hover:bg-slate-800/50 transition group">
             <td class="py-3 px-3">
@@ -8920,8 +9137,8 @@
               <div class="mt-1">${statusBadge}</div>
             </td>
 
-            <td class="py-3 px-2.5 text-right">
-              <div class="text-sm font-bold ${priceColor}">$${formatNumber(item.price, 1)}</div>
+            <td class="py-3 px-2.5 text-right transition-colors rounded ${flashClass}">
+              <div class="text-sm font-bold ${priceColor} price-val transition-all duration-300">$${formatNumber(item.price, 1)}</div>
               <div class="text-[11px] font-semibold ${priceColor}">${changeSign}${item.changePct.toFixed(2)}%</div>
             </td>
 
@@ -9575,6 +9792,12 @@
           syncOfficialDeepData();
         }, 1200);
       }
+
+      // 自動檢查當前是否為台股交易時段 (週一至週五 09:00~13:30)，開盤自動啟動 10 秒即時報價刷新，收盤自動暫停
+      checkAndApplyAutoRefresh(true);
+      setInterval(() => {
+        checkAndApplyAutoRefresh(false);
+      }, 30000);
     });
 
     window.addEventListener('load', () => {
