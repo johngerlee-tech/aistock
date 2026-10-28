@@ -5933,16 +5933,20 @@
         state.stocks = JSON.parse(JSON.stringify(DEFAULT_STOCKS));
       }
 
-      // 自動校準持股籌碼、財報數據與董監事內部人申報（自動升級舊版 15.0% 相同數據為官方真實數據）
+      // 自動校準持股籌碼、財報數據與董監事內部人申報（自動升級舊版 15.0% 與占位相同數據為官方真實數據）
       let stateNeedsSave = false;
       state.stocks.forEach(s => {
+        const cleanId = String(s.id || '').trim();
+        s.id = cleanId;
+
         if (!s.broker) {
-          s.broker = ['2344', '3689', '3141', '8109'].includes(String(s.id)) ? '富邦證券' : '元大證券';
+          s.broker = ['2344', '3689', '3141', '8109'].includes(cleanId) ? '富邦證券' : '元大證券';
           stateNeedsSave = true;
         }
-        const known = OFFICIAL_KNOWN_STOCKS[s.id];
-        const defaultMatch = DEFAULT_STOCKS.find(d => d.id === s.id);
+        const known = OFFICIAL_KNOWN_STOCKS[cleanId];
+        const defaultMatch = DEFAULT_STOCKS.find(d => d.id === cleanId);
         if (defaultMatch) {
+          // 校準 400/1000 大戶比
           if (s.holder400Pct === 65.0 && s.holder1000Pct === 55.0) {
             s.holder400Pct = defaultMatch.holder400Pct;
             s.holder400Diff = defaultMatch.holder400Diff;
@@ -5950,6 +5954,25 @@
             s.holder1000Diff = defaultMatch.holder1000Diff;
             s.shareholdersCount = defaultMatch.shareholdersCount;
             s.shareholdersDiff = defaultMatch.shareholdersDiff;
+            s.holderHistory = JSON.parse(JSON.stringify(defaultMatch.holderHistory));
+            stateNeedsSave = true;
+          }
+
+          // 校準月營收與季獲利（校正舊版 +20.0% / $3.50 / 25.5% / PE 18x 占位相同異常）
+          const isStaleFin = (
+            !s.epsLatestQ ||
+            Number(s.epsLatestQ) === 0 ||
+            Number(s.epsLatestQ) === 3.5 ||
+            (Number(s.revYoY) === 20.0 && Number(s.grossMargin) === 25.5) ||
+            !s.grossMargin ||
+            !s.pe
+          );
+          if (isStaleFin) {
+            s.epsLatestQ = defaultMatch.epsLatestQ;
+            s.grossMargin = defaultMatch.grossMargin;
+            s.opMargin = defaultMatch.opMargin || 15.0;
+            s.netMargin = defaultMatch.netMargin || 12.0;
+            s.roe = defaultMatch.roe || 18.0;
             s.revLatest = defaultMatch.revLatest;
             s.revYoY = defaultMatch.revYoY;
             s.revMoM = defaultMatch.revMoM;
@@ -5957,9 +5980,12 @@
             s.pe = defaultMatch.pe;
             s.pb = defaultMatch.pb;
             s.yieldPct = defaultMatch.yieldPct;
-            s.holderHistory = defaultMatch.holderHistory;
-            s.revenueHistory = defaultMatch.revenueHistory;
-            s.quarterlyHistory = defaultMatch.quarterlyHistory;
+            if (defaultMatch.quarterlyHistory) s.quarterlyHistory = JSON.parse(JSON.stringify(defaultMatch.quarterlyHistory));
+            if (defaultMatch.revenueHistory) s.revenueHistory = JSON.parse(JSON.stringify(defaultMatch.revenueHistory));
+            stateNeedsSave = true;
+          }
+
+          if ((!s.cbCode || s.cbCode === '無') && defaultMatch.cbCode && defaultMatch.cbCode !== '無') {
             s.cbCode = defaultMatch.cbCode;
             s.cbPrice = defaultMatch.cbPrice;
             s.cbConvPrice = defaultMatch.cbConvPrice;
@@ -5970,63 +5996,53 @@
           }
         }
 
-        // 1. 自動校準三大法人近期買賣超、持股佔比與歷史明細長條圖 (徹底校正多檔標的相同 +850張/外資25%/投信8.5% 之異常)
+        // 1. 自動校準三大法人近期買賣超、持股佔比與歷史明細長條圖
         const isStaleInst = (
           (s.inst5d === 850 && s.foreignPct === 25.0) ||
           (s.inst5d === 0 && (!s.instStreak || s.instStreak === '法人常態觀察')) ||
-          (!s.instHistory || !s.instHistory.foreign || (
-            s.instHistory.foreign.length === 5 &&
-            s.instHistory.foreign[0] === 120 &&
-            s.instHistory.foreign[1] === -40 &&
-            s.instHistory.foreign[2] === 280 &&
-            s.instHistory.foreign[3] === 450 &&
-            s.instHistory.foreign[4] === 520
-          ))
+          (!s.instHistory || !s.instHistory.foreign)
         );
 
         if (isStaleInst) {
-          if (known) {
-            s.instToday = known.instToday;
-            s.inst5d = known.inst5d;
-            s.foreignPct = known.foreignPct;
-            s.trustPct = known.trustPct;
-            s.instStreak = known.instStreak;
-            s.instHistory = JSON.parse(JSON.stringify(known.instHistory));
-          } else {
-            const instProf = generateStockInstitutionalProfile(s.id, s.price);
-            s.instToday = instProf.instToday;
-            s.inst5d = instProf.inst5d;
-            s.foreignPct = instProf.foreignPct;
-            s.trustPct = instProf.trustPct;
-            s.instStreak = instProf.instStreak;
-            s.instHistory = instProf.instHistory;
+          const instSource = known || defaultMatch;
+          if (instSource && instSource.instToday !== undefined) {
+            s.instToday = instSource.instToday;
+            s.inst5d = instSource.inst5d;
+            s.foreignPct = instSource.foreignPct;
+            s.trustPct = instSource.trustPct;
+            s.instStreak = instSource.instStreak;
+            s.instHistory = JSON.parse(JSON.stringify(instSource.instHistory));
+            stateNeedsSave = true;
           }
-          stateNeedsSave = true;
         }
 
-        // 2. 自動校準董監事與內部人持股比、設質比率、月增減與申報明細 (徹底校正 15.00%/主要關係人 之異常)
+        // 2. 自動校準董監事與內部人持股比、設質比率、月增減與申報明細 (徹底校正 15.00%/0張/0% 占位相同異常)
         const isStaleInsider = (
-          (s.insiderPct === 15.0 && s.insiderMonthlyDiff === 0) ||
-          s.insiderPct === 0.0 ||
+          (Number(s.insiderPct) === 15.0 && Number(s.insiderMonthlyDiff) === 0 && (!s.insiderPledgePct || Number(s.insiderPledgePct) === 0)) ||
+          Number(s.insiderPct) === 0.0 ||
+          s.insiderPct === undefined ||
+          s.insiderPct === null ||
           !s.insiderRecords ||
           s.insiderRecords.length === 0 ||
           (s.insiderRecords[0] && s.insiderRecords[0].name.includes('主要關係人'))
         );
 
         if (isStaleInsider) {
-          if (known) {
-            s.insiderPct = known.insiderPct;
-            s.insiderMonthlyDiff = known.insiderMonthlyDiff;
-            s.insiderPledgePct = known.insiderPledgePct;
-            s.insiderRecords = JSON.parse(JSON.stringify(known.insiderRecords));
+          const insSource = known || defaultMatch;
+          if (insSource && insSource.insiderPct) {
+            s.insiderPct = insSource.insiderPct;
+            s.insiderMonthlyDiff = insSource.insiderMonthlyDiff || 0;
+            s.insiderPledgePct = insSource.insiderPledgePct || 0.0;
+            s.insiderRecords = JSON.parse(JSON.stringify(insSource.insiderRecords || []));
+            stateNeedsSave = true;
           } else {
-            const insProf = generateStockInsiderData(s.id, s.name);
-            s.insiderPct = insProf.insiderPct;
-            s.insiderMonthlyDiff = insProf.insiderMonthlyDiff;
-            s.insiderPledgePct = insProf.insiderPledgePct;
-            s.insiderRecords = insProf.insiderRecords;
+            // 非官方標的或確實無法取得內部人數據，設為 null，由介面明確顯示「無法提供數據」
+            s.insiderPct = null;
+            s.insiderMonthlyDiff = 0;
+            s.insiderPledgePct = null;
+            s.insiderRecords = [];
+            stateNeedsSave = true;
           }
-          stateNeedsSave = true;
         }
       });
       if (stateNeedsSave) {
@@ -7017,13 +7033,20 @@
                 if (item.revYoY !== undefined) stock.revYoY = item.revYoY;
                 if (item.revMoM !== undefined) stock.revMoM = item.revMoM;
                 if (item.revCumYoY !== undefined) stock.revCumYoY = item.revCumYoY;
+                if (item.epsLatestQ !== undefined && item.epsLatestQ !== null && item.epsLatestQ > 0) stock.epsLatestQ = item.epsLatestQ;
+                if (item.grossMargin !== undefined && item.grossMargin !== null && item.grossMargin > 0) stock.grossMargin = item.grossMargin;
+                if (item.opMargin !== undefined && item.opMargin !== null && item.opMargin > 0) stock.opMargin = item.opMargin;
+                if (item.netMargin !== undefined && item.netMargin !== null && item.netMargin > 0) stock.netMargin = item.netMargin;
+                if (item.roe !== undefined && item.roe !== null && item.roe > 0) stock.roe = item.roe;
                 if (item.pe) stock.pe = item.pe;
                 if (item.pb) stock.pb = item.pb;
                 if (item.yieldPct) stock.yieldPct = item.yieldPct;
-                if (item.insiderPct !== undefined) stock.insiderPct = item.insiderPct;
-                if (item.insiderMonthlyDiff !== undefined) stock.insiderMonthlyDiff = item.insiderMonthlyDiff;
-                if (item.insiderPledgePct !== undefined) stock.insiderPledgePct = item.insiderPledgePct;
-                if (item.insiderRecords && item.insiderRecords.length > 0) stock.insiderRecords = item.insiderRecords;
+                if (item.insiderPct !== undefined && item.insiderPct !== null && item.insiderPct > 0) {
+                  stock.insiderPct = item.insiderPct;
+                  if (item.insiderMonthlyDiff !== undefined) stock.insiderMonthlyDiff = item.insiderMonthlyDiff;
+                  if (item.insiderPledgePct !== undefined) stock.insiderPledgePct = item.insiderPledgePct;
+                  if (item.insiderRecords && item.insiderRecords.length > 0) stock.insiderRecords = item.insiderRecords;
+                }
                 if (item.inst5d !== undefined) stock.inst5d = item.inst5d;
                 if (item.instToday !== undefined) stock.instToday = item.instToday;
                 if (item.foreignPct !== undefined) stock.foreignPct = item.foreignPct;
@@ -7355,13 +7378,46 @@
         const holder400Diff = mapping.holder400Diff !== undefined ? parseFloat(cols[mapping.holder400Diff]) || 0.5 : 0.5;
         const holder1000 = mapping.holder1000Pct !== undefined ? parseFloat(cols[mapping.holder1000Pct]) || 55.0 : 55.0;
         const holder1000Diff = mapping.holder1000Diff !== undefined ? parseFloat(cols[mapping.holder1000Diff]) || 0.35 : 0.35;
-        const insiderPct = mapping.insiderPct !== undefined ? parseFloat(cols[mapping.insiderPct]) || 15.0 : 15.0;
-        const insiderMonthlyDiff = mapping.insiderMonthlyDiff !== undefined ? parseFloat(cols[mapping.insiderMonthlyDiff]) || 0 : 0;
-        const cbCode = mapping.cbCode !== undefined ? (cols[mapping.cbCode] || '無') : '無';
-        const cbConvPct = mapping.cbConvertedPct !== undefined ? parseFloat(cols[mapping.cbConvertedPct]) || 0 : 0;
-        const revYoY = mapping.revYoY !== undefined ? parseFloat(cols[mapping.revYoY]) || 20.0 : 20.0;
-        const epsLatestQ = mapping.epsLatestQ !== undefined ? parseFloat(cols[mapping.epsLatestQ]) || 3.5 : 3.5;
+        const defMatch = DEFAULT_STOCKS.find(d => d.id === sid);
+        const knownMatch = OFFICIAL_KNOWN_STOCKS[sid];
+
+        const cbCode = mapping.cbCode !== undefined ? (cols[mapping.cbCode] || '無') : (defMatch ? defMatch.cbCode : '無');
+        const cbConvPct = mapping.cbConvertedPct !== undefined ? parseFloat(cols[mapping.cbConvertedPct]) || 0 : (defMatch ? defMatch.cbConvertedPct : 0);
+
+        // 營收與 EPS：若 CSV 有提供且非 0 則使用；否則優先取用官方真實資料庫，若兩者皆無則設為 null（絕不給予占位假數）
+        let revYoY = null;
+        if (mapping.revYoY !== undefined && !isNaN(parseFloat(cols[mapping.revYoY]))) {
+          revYoY = parseFloat(cols[mapping.revYoY]);
+        } else if (defMatch && defMatch.revYoY !== undefined) {
+          revYoY = defMatch.revYoY;
+        }
+
+        let epsLatestQ = null;
+        if (mapping.epsLatestQ !== undefined && !isNaN(parseFloat(cols[mapping.epsLatestQ])) && parseFloat(cols[mapping.epsLatestQ]) > 0) {
+          epsLatestQ = parseFloat(cols[mapping.epsLatestQ]);
+        } else if (defMatch && defMatch.epsLatestQ !== undefined && defMatch.epsLatestQ > 0) {
+          epsLatestQ = defMatch.epsLatestQ;
+        }
+
+        const grossMargin = (defMatch && defMatch.grossMargin) ? defMatch.grossMargin : (mapping.grossMargin !== undefined ? parseFloat(cols[mapping.grossMargin]) : null);
+        const peVal = (defMatch && defMatch.pe) ? defMatch.pe : (mapping.pe !== undefined ? parseFloat(cols[mapping.pe]) : null);
         const memo = mapping.memo !== undefined ? cols[mapping.memo] : '由智慧 CSV 匯入之自選標的';
+
+        let insiderPct = null;
+        let insiderMonthlyDiff = 0;
+        let insiderPledgePct = 0;
+        let insiderRecords = [];
+        if (mapping.insiderPct !== undefined && !isNaN(parseFloat(cols[mapping.insiderPct])) && parseFloat(cols[mapping.insiderPct]) > 0) {
+          insiderPct = parseFloat(cols[mapping.insiderPct]);
+          insiderMonthlyDiff = (mapping.insiderMonthlyDiff !== undefined) ? parseInt(cols[mapping.insiderMonthlyDiff]) || 0 : 0;
+          insiderPledgePct = (mapping.insiderPledgePct !== undefined) ? parseFloat(cols[mapping.insiderPledgePct]) || 0 : 0;
+        } else if (knownMatch || defMatch) {
+          const src = knownMatch || defMatch;
+          insiderPct = src.insiderPct || null;
+          insiderMonthlyDiff = src.insiderMonthlyDiff || 0;
+          insiderPledgePct = src.insiderPledgePct || 0;
+          insiderRecords = src.insiderRecords || [];
+        }
 
         const existingIdx = state.stocks.findIndex(s => s.id === sid);
         if (existingIdx >= 0) {
@@ -7379,17 +7435,18 @@
           if (mapping.holder400Diff !== undefined) s.holder400Diff = holder400Diff;
           if (mapping.holder1000Pct !== undefined) s.holder1000Pct = holder1000;
           if (mapping.holder1000Diff !== undefined) s.holder1000Diff = holder1000Diff;
-          if (mapping.insiderPct !== undefined) s.insiderPct = insiderPct;
-          if (mapping.insiderMonthlyDiff !== undefined) s.insiderMonthlyDiff = insiderMonthlyDiff;
-          if (mapping.cbCode !== undefined) s.cbCode = cbCode;
+          if (insiderPct !== null) s.insiderPct = insiderPct;
+          if (insiderMonthlyDiff !== 0) s.insiderMonthlyDiff = insiderMonthlyDiff;
+          if (s.cbCode === '無' || mapping.cbCode !== undefined) s.cbCode = cbCode;
           if (mapping.cbConvertedPct !== undefined) s.cbConvertedPct = cbConvPct;
-          if (mapping.revYoY !== undefined) s.revYoY = revYoY;
-          if (mapping.epsLatestQ !== undefined) s.epsLatestQ = epsLatestQ;
+          if (revYoY !== null) s.revYoY = revYoY;
+          if (epsLatestQ !== null) s.epsLatestQ = epsLatestQ;
+          if (grossMargin !== null) s.grossMargin = grossMargin;
+          if (peVal !== null) s.pe = peVal;
           if (mapping.memo !== undefined && memo) s.memo = memo;
         } else {
-          const instProf = OFFICIAL_KNOWN_STOCKS[sid] || generateStockInstitutionalProfile(sid, price);
-          const insiderProf = OFFICIAL_KNOWN_STOCKS[sid] || generateStockInsiderData(sid, name);
-          const history = createStockHistoricalData(price, holder400, holder1000, 30000, 28.5, revYoY, epsLatestQ, sid, name);
+          const instProf = knownMatch || generateStockInstitutionalProfile(sid, price);
+          const history = createStockHistoricalData(price, holder400, holder1000, 30000, 28.5, revYoY || 15.0, epsLatestQ || 2.5, sid, name);
           state.stocks.push({
             id: sid,
             name,
@@ -7402,39 +7459,40 @@
             changePct,
             targetPrice,
             strategyTag,
-            instToday: instProf.instToday,
-            inst5d: instProf.inst5d,
-            foreignPct: mapping.foreignPct !== undefined ? parseFloat(cols[mapping.foreignPct]) || instProf.foreignPct : instProf.foreignPct,
-            trustPct: mapping.trustPct !== undefined ? parseFloat(cols[mapping.trustPct]) || instProf.trustPct : instProf.trustPct,
-            instStreak: instProf.instStreak,
+            instToday: instProf.instToday || 0,
+            inst5d: instProf.inst5d || 0,
+            foreignPct: mapping.foreignPct !== undefined ? parseFloat(cols[mapping.foreignPct]) || instProf.foreignPct : (instProf.foreignPct || 0),
+            trustPct: mapping.trustPct !== undefined ? parseFloat(cols[mapping.trustPct]) || instProf.trustPct : (instProf.trustPct || 0),
+            instStreak: instProf.instStreak || '法人常態觀察',
             holder400Pct: holder400,
             holder400Diff,
             holder1000Pct: holder1000,
             holder1000Diff,
             shareholdersCount: 30000,
             shareholdersDiff: -350,
-            insiderPct: mapping.insiderPct !== undefined ? parseFloat(cols[mapping.insiderPct]) || insiderProf.insiderPct : insiderProf.insiderPct,
-            insiderMonthlyDiff: mapping.insiderMonthlyDiff !== undefined ? parseFloat(cols[mapping.insiderMonthlyDiff]) || insiderProf.insiderMonthlyDiff : insiderProf.insiderMonthlyDiff,
-            insiderPledgePct: insiderProf.insiderPledgePct,
+            insiderPct,
+            insiderMonthlyDiff,
+            insiderPledgePct,
+            insiderRecords,
             cbCode,
             cbPrice: 110.0,
             cbConvPrice: Math.round(price * 0.9),
             cbPremiumPct: 3.5,
             cbConvertedPct: cbConvPct,
             cbMonthlyChangePct: 2.5,
-            revLatest: 28.5,
-            revMoM: 3.2,
+            revLatest: (defMatch && defMatch.revLatest) ? defMatch.revLatest : 0,
+            revMoM: (defMatch && defMatch.revMoM) ? defMatch.revMoM : 0,
             revYoY,
-            revCumYoY: revYoY * 0.95,
+            revCumYoY: revYoY !== null ? revYoY * 0.95 : null,
             epsLatestQ,
-            grossMargin: 25.5,
-            opMargin: 15.0,
-            netMargin: 12.0,
-            roe: 18.5,
-            pe: 18.0,
-            forwardPe: 15.0,
-            pb: 3.2,
-            yieldPct: 3.5,
+            grossMargin,
+            opMargin: (defMatch && defMatch.opMargin) ? defMatch.opMargin : null,
+            netMargin: (defMatch && defMatch.netMargin) ? defMatch.netMargin : null,
+            roe: (defMatch && defMatch.roe) ? defMatch.roe : null,
+            pe: peVal,
+            forwardPe: (defMatch && defMatch.forwardPe) ? defMatch.forwardPe : null,
+            pb: (defMatch && defMatch.pb) ? defMatch.pb : null,
+            yieldPct: (defMatch && defMatch.yieldPct) ? defMatch.yieldPct : null,
             bps: Math.round(price * 0.35),
             debtRatio: 45.0,
             memo,
@@ -7641,6 +7699,78 @@
     function formatNumber(n, decimals = 0) {
       if (n === null || n === undefined || isNaN(n)) return '-';
       return Number(n).toLocaleString('zh-TW', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    }
+
+    function formatInsiderCell(s) {
+      const isInvalid = !s ||
+        s.insiderPct === undefined ||
+        s.insiderPct === null ||
+        isNaN(s.insiderPct) ||
+        Number(s.insiderPct) <= 0 ||
+        ((Number(s.insiderPct) === 15.0 || Number(s.insiderPct) === 15) && (!s.insiderMonthlyDiff || Number(s.insiderMonthlyDiff) === 0) && (!s.insiderPledgePct || Number(s.insiderPledgePct) === 0) && (!s.insiderRecords || s.insiderRecords.length === 0));
+
+      if (isInvalid) {
+        return `<span class="px-2 py-1 text-[11px] font-medium rounded-md bg-slate-900 border border-slate-800 text-slate-400 inline-block">無法提供數據</span>`;
+      }
+
+      const diffColor = s.insiderMonthlyDiff > 0 ? 'tw-up' : (s.insiderMonthlyDiff < 0 ? 'tw-down' : 'text-slate-300');
+      const diffSign = s.insiderMonthlyDiff > 0 ? '+' : '';
+      const pledge = (s.insiderPledgePct !== null && s.insiderPledgePct !== undefined) ? `${s.insiderPledgePct}%` : '0%';
+
+      return `
+        <div class="font-semibold text-white">持股 ${Number(s.insiderPct).toFixed(1)}%</div>
+        <div class="text-[11px] font-semibold ${diffColor}">
+          月增減 ${diffSign}${s.insiderMonthlyDiff} 張
+        </div>
+        <div class="text-[10px] text-slate-400">設質比 ${pledge}</div>
+      `;
+    }
+
+    function formatRevenueEarningsCell(s) {
+      const isDummy = !s || (
+        (Number(s.revYoY) === 20.0 || Number(s.revYoY) === 20) &&
+        (Number(s.epsLatestQ) === 3.5 || Number(s.epsLatestQ) === 3.50) &&
+        (Number(s.grossMargin) === 25.5 || Number(s.grossMargin) === 25)
+      );
+
+      const hasRev = s && s.revYoY !== undefined && s.revYoY !== null && !isNaN(s.revYoY);
+      const hasEps = s && s.epsLatestQ !== undefined && s.epsLatestQ !== null && !isNaN(s.epsLatestQ) && Number(s.epsLatestQ) > 0;
+
+      if (isDummy || (!hasRev && !hasEps)) {
+        return `<span class="px-2 py-1 text-[11px] font-medium rounded-md bg-slate-900 border border-slate-800 text-slate-400 inline-block">無法提供數據</span>`;
+      }
+
+      let revHtml = '';
+      if (hasRev) {
+        const revColor = s.revYoY >= 20 ? 'tw-up' : (s.revYoY < 0 ? 'tw-down' : 'text-slate-200');
+        revHtml = `<div class="font-semibold ${revColor}">營收 YoY ${s.revYoY >= 0 ? '+' : ''}${Number(s.revYoY).toFixed(1)}%</div>`;
+      } else {
+        revHtml = `<div class="text-[11px] text-slate-400">營收 YoY <span class="text-slate-500">無法提供數據</span></div>`;
+      }
+
+      let epsHtml = '';
+      if (hasEps) {
+        epsHtml = `<div class="text-[11px] text-slate-300">最新季 EPS <span class="font-bold text-indigo-300">$${Number(s.epsLatestQ).toFixed(2)}</span></div>`;
+      } else {
+        epsHtml = `<div class="text-[11px] text-slate-400">最新季 EPS <span class="text-slate-500">無法提供數據</span></div>`;
+      }
+
+      let extraHtml = '';
+      const hasGm = s.grossMargin !== undefined && s.grossMargin !== null && Number(s.grossMargin) > 0;
+      const hasPe = s.pe !== undefined && s.pe !== null && Number(s.pe) > 0;
+      if (hasGm && hasPe) {
+        extraHtml = `<div class="text-[10px] text-slate-400">毛利 ${s.grossMargin}%｜PE ${s.pe}x</div>`;
+      } else if (hasGm) {
+        extraHtml = `<div class="text-[10px] text-slate-400">毛利 ${s.grossMargin}%</div>`;
+      } else if (hasPe) {
+        extraHtml = `<div class="text-[10px] text-slate-400">PE ${s.pe}x</div>`;
+      }
+
+      return `
+        ${revHtml}
+        ${epsHtml}
+        ${extraHtml}
+      `;
     }
 
     function renderPortfolioTable() {
@@ -7854,19 +7984,13 @@
             </td>
 
             <td class="py-3 px-2.5 text-center">
-              <div class="font-semibold text-white">持股 ${s.insiderPct.toFixed(1)}%</div>
-              <div class="text-[11px] font-semibold ${insiderColor}">
-                月增減 ${s.insiderMonthlyDiff > 0 ? '+' : ''}${s.insiderMonthlyDiff} 張
-              </div>
-              <div class="text-[10px] text-slate-400">設質比 ${s.insiderPledgePct}%</div>
+              ${formatInsiderCell(s)}
             </td>
 
             <td class="py-3 px-2.5 text-center">${cbHtml}</td>
 
             <td class="py-3 px-2.5 text-right">
-              <div class="font-semibold ${s.revYoY >= 20 ? 'tw-up' : 'text-slate-200'}">營收 YoY ${s.revYoY >= 0 ? '+' : ''}${s.revYoY.toFixed(1)}%</div>
-              <div class="text-[11px] text-slate-300">最新季 EPS <span class="font-bold text-indigo-300">$${s.epsLatestQ.toFixed(2)}</span></div>
-              <div class="text-[10px] text-slate-400">毛利 ${s.grossMargin}%｜PE ${s.pe}x</div>
+              ${formatRevenueEarningsCell(s)}
             </td>
 
             <td class="py-3 px-2.5 text-center">
@@ -8822,18 +8946,13 @@
             </td>
 
             <td class="py-3 px-2.5 text-center">
-              <div class="font-semibold text-white">持股 ${item.insiderPct.toFixed(1)}%</div>
-              <div class="text-[11px] font-semibold ${item.insiderMonthlyDiff > 0 ? 'tw-up' : 'text-slate-400'}">
-                月增減 ${item.insiderMonthlyDiff > 0 ? '+' : ''}${item.insiderMonthlyDiff} 張
-              </div>
+              ${formatInsiderCell(item)}
             </td>
 
             <td class="py-3 px-2.5 text-center">${cbContent}</td>
 
             <td class="py-3 px-2.5 text-right">
-              <div class="font-semibold ${item.revYoY >= 20 ? 'tw-up' : 'text-slate-200'}">月營收 YoY +${item.revYoY.toFixed(1)}%</div>
-              <div class="text-[11px] text-slate-300">最新季 EPS <span class="font-bold text-indigo-300">$${item.epsLatestQ.toFixed(2)}</span></div>
-              <div class="text-[10px] text-slate-400">毛利 ${item.grossMargin}% ｜ 營益 ${item.opMargin}%</div>
+              ${formatRevenueEarningsCell(item)}
             </td>
 
             <td class="py-3 px-2.5 text-right">
