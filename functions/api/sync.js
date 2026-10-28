@@ -1105,127 +1105,22 @@ function getStockHash(sid) {
 }
 
 function generateStockInstitutionalProfile(sid, price = 100) {
-  const hash = getStockHash(sid);
-  const p = price > 0 ? price : 100;
-  let scale = 100;
-  if (p > 1000) scale = 25;
-  else if (p > 300) scale = 80;
-  else if (p > 100) scale = 250;
-  else if (p > 50) scale = 600;
-  else scale = 1200;
-
-  const fSign = ((hash % 7) > 2) ? 1 : -1;
-  const tSign = ((hash % 5) > 1) ? 1 : -1;
-
-  const foreign = [
-    Math.round(((hash % 17) - 6) * scale * 0.15),
-    Math.round((((hash >> 2) % 19) - 9) * scale * 0.18),
-    Math.round((((hash >> 4) % 23) - 7) * scale * 0.22),
-    Math.round((((hash >> 6) % 29) - 8) * scale * 0.26) * fSign,
-    Math.round((((hash >> 8) % 31) - 6) * scale * 0.24) * fSign
-  ];
-  const trust = [
-    Math.round((((hash >> 3) % 13) - 3) * scale * 0.08),
-    Math.round((((hash >> 5) % 15) - 2) * scale * 0.09) * tSign,
-    Math.round((((hash >> 7) % 17) - 3) * scale * 0.11),
-    Math.round((((hash >> 9) % 19) - 2) * scale * 0.13) * tSign,
-    Math.round((((hash >> 11) % 21) - 3) * scale * 0.12)
-  ];
-  const dealer = [
-    Math.round((((hash >> 1) % 11) - 5) * scale * 0.03),
-    Math.round((((hash >> 3) % 9) - 4) * scale * 0.04),
-    Math.round((((hash >> 5) % 13) - 6) * scale * 0.03),
-    Math.round((((hash >> 7) % 15) - 7) * scale * 0.05),
-    Math.round((((hash >> 9) % 11) - 5) * scale * 0.04)
-  ];
-
-  const inst5d = foreign.reduce((a, b) => a + b, 0) + trust.reduce((a, b) => a + b, 0) + dealer.reduce((a, b) => a + b, 0);
-  const instToday = foreign[4] + trust[4] + dealer[4];
-
-  const foreignPct = Math.round((18.5 + (hash % 380) / 10) * 10) / 10;
-  const trustPct = Math.round((3.2 + (hash % 120) / 10) * 10) / 10;
-
-  const streaks = [
-    '外資連3買・籌碼集中',
-    '投信加碼・波段佈局',
-    '三大法人同步作多',
-    '法人高檔換手整理',
-    '投信連續認養買超',
-    '外資調節・投信逆勢護盤',
-    '主力法人買盤回流'
-  ];
-  const instStreak = streaks[hash % streaks.length];
-
   return {
-    instToday,
-    inst5d,
-    foreignPct,
-    trustPct,
-    instStreak,
-    instHistory: {
-      days: ['10/20', '10/21', '10/22', '10/23', '10/24'],
-      foreign,
-      trust,
-      dealer
-    }
+    instToday: null,
+    inst5d: null,
+    foreignPct: null,
+    trustPct: null,
+    instStreak: '目前無法取得資訊',
+    instHistory: null
   };
 }
 
 function generateStockInsiderData(sid, name = '') {
-  const hash = getStockHash(sid);
-  const basePct = Math.round((12.5 + (hash % 350) / 10) * 100) / 100;
-  const diffs = [0, 50, 120, -80, 230, 0, 450, -150, 80, 0, 310];
-  const monthlyDiff = diffs[hash % diffs.length];
-  const pledgePct = (hash % 7 === 0) ? Math.round(((hash % 120) / 10) * 10) / 10 : 0.0;
-
-  const cleanName = name || `標的${sid}`;
-  const corpNames = [
-    `${cleanName}投資開發股份有限公司`,
-    `鼎峰創業投資股份有限公司`,
-    `弘達科技資產管理股份有限公司`,
-    `大欣企業股份有限公司`,
-    `正利管理顧問有限公司`
-  ];
-  const corpName = corpNames[hash % corpNames.length];
-  const repNames = ['陳志強', '林俊良', '張慶芳', '黃金堂', '李明遠', '吳柏毅', '蔡英裕'];
-  const repName = repNames[hash % repNames.length];
-
-  const majorRatio = (basePct * 0.45).toFixed(2) + '%';
-  const chairRatio = (basePct * 0.25).toFixed(2) + '%';
-  const gmRatio = (basePct * 0.15).toFixed(2) + '%';
-
-  const records = [
-    {
-      month: '2026/09',
-      role: '董事長本人',
-      name: repName,
-      diff: monthlyDiff >= 0 ? Math.round(monthlyDiff * 0.6) : 0,
-      ratio: chairRatio,
-      note: `持股穩定維護 (設質比率: ${pledgePct}%)`
-    },
-    {
-      month: '2026/09',
-      role: '董事法人代表',
-      name: corpName,
-      diff: monthlyDiff > 0 ? Math.round(monthlyDiff * 0.4) : (monthlyDiff < 0 ? monthlyDiff : 0),
-      ratio: majorRatio,
-      note: '長期策略性投資部位'
-    },
-    {
-      month: '2026/09',
-      role: '總經理本人',
-      name: `${repName.charAt(0)}經理人`,
-      diff: 0,
-      ratio: gmRatio,
-      note: '依法申報持有股數'
-    }
-  ];
-
   return {
-    insiderPct: basePct,
-    insiderMonthlyDiff: monthlyDiff,
-    insiderPledgePct: pledgePct,
-    insiderRecords: records
+    insiderPct: null,
+    insiderMonthlyDiff: 0,
+    insiderPledgePct: null,
+    insiderRecords: []
   };
 }
 
