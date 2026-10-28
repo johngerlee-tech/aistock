@@ -191,6 +191,10 @@
         <button type="button" id="btnOpenBrokerModal" onclick="openBrokerSettingsModal()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 transition flex items-center gap-1.5 shadow-sm" title="設定各券商電子手續費折讓率與稅率">
           <span>⚙️ 券商費率</span>
         </button>
+        <button type="button" id="headerCloudSyncBtn" onclick="manualTriggerCloudSync()" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white transition flex items-center gap-1.5 shadow-sm" title="Cloudflare D1 雲端多裝置資料庫雙向即時同步">
+          <span id="cloudSyncStatusDot" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          <span id="cloudSyncLabel" class="hidden sm:inline">D1 雲端</span>
+        </button>
         <!-- Security & Admin Auth Badge in Header -->
         <div id="headerAuthBadge" class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 px-2.5 py-1 rounded-xl text-xs">
           <div id="headerAuthAvatar" class="w-6 h-6 rounded-full bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center text-[10px] font-bold text-white overflow-hidden">
@@ -945,6 +949,54 @@
     <!-- VIEW 4: CLOUDFLARE SYNC ENGINE & DEPLOYMENT GUIDE           -->
     <!-- =========================================================== -->
     <section id="viewSync" class="space-y-5 hidden">
+      <!-- Cloudflare D1 Database Multi-Device Sync Card -->
+      <div class="bg-slate-900/90 border border-indigo-500/40 rounded-2xl p-5 space-y-4 shadow-xl">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-2.5">
+            <span class="text-2xl">☁️</span>
+            <div>
+              <h3 class="text-base font-bold text-white flex items-center gap-2">
+                <span>Cloudflare D1 雲端多裝置自動同步中心</span>
+                <span class="px-2 py-0.5 text-[10px] font-semibold rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">免手動匯出</span>
+              </h3>
+              <p class="text-xs text-slate-400">家裡 PC、公司 PC、筆電與手機自動即時同步持股倉、損益成本、研究備註與安全 PIN 碼</p>
+            </div>
+          </div>
+          <div id="d1StatusText" class="text-xs font-semibold text-slate-300 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
+            <span class="text-emerald-400 font-semibold flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>D1 雲端連線就緒
+            </span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+          <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+            <div class="text-slate-400">當前同步主體：</div>
+            <div id="d1CurrentAccount" class="font-semibold text-indigo-300 font-mono truncate">main_admin</div>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+            <div class="text-slate-400">最近同步時間：</div>
+            <div id="d1LastSyncTime" class="font-semibold text-slate-200 font-mono">尚未同步</div>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+            <div class="text-slate-400">雲端資料庫架構：</div>
+            <div class="font-semibold text-cyan-300">Cloudflare D1 (5GB 原生免費配額)</div>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-2 pt-2 border-t border-slate-800/80">
+          <button type="button" onclick="manualTriggerCloudSync()" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition flex items-center gap-1.5 shadow-sm">
+            <span>🔄 立即與 D1 雲端雙向同步</span>
+          </button>
+          <button type="button" onclick="forceUploadToCloud()" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center gap-1.5 shadow-sm">
+            <span>📤 強制將本機持股備份至 D1</span>
+          </button>
+          <button type="button" onclick="forceDownloadFromCloud()" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1.5 shadow-sm">
+            <span>📥 強制從 D1 覆蓋還原至本機</span>
+          </button>
+        </div>
+      </div>
+
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
         <!-- Left 6 Cols: Cloudflare Edge Status & Deployment Methods -->
         <div class="lg:col-span-6 space-y-4">
@@ -5244,6 +5296,9 @@
       quickNoteStockId: null,
       lastSyncTime: null,
       autoRefreshTimer: null,
+      cloudSyncStatus: 'idle',
+      lastCloudSyncTime: null,
+      cloudSaveTimer: null,
       stocks: [],
       trades: [],
       // Screener Filters
@@ -5382,6 +5437,7 @@
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state.stocks));
         localStorage.setItem(TRADES_STORAGE_KEY, JSON.stringify(state.trades));
+        if (typeof debouncedSaveToCloud === 'function') debouncedSaveToCloud();
       } catch (e) {}
     }
 
@@ -5519,6 +5575,11 @@
     // GOOGLE AUTHENTICATION & ACCESS CONTROL SECURITY GATE
     // =========================================================================
     function checkAuthOnStartup() {
+      // 啟動時先在背景向 D1 抓取最新安全設定與 PIN 碼（使公司電腦可無縫使用家裡更新後的新密碼）
+      if (typeof fetchUserDataFromCloud === 'function') {
+        fetchUserDataFromCloud('main_admin', true);
+      }
+
       try {
         const sessionRaw = sessionStorage.getItem(SECURITY_SESSION_KEY) || localStorage.getItem(SECURITY_SESSION_KEY);
         if (sessionRaw) {
@@ -5529,6 +5590,9 @@
               state.security.authorizedEmails.length === 0;
             if (isAuthorized) {
               unlockSecurityGate(user);
+              if (typeof fetchUserDataFromCloud === 'function') {
+                fetchUserDataFromCloud(user.email, true);
+              }
               return;
             }
           }
@@ -5607,6 +5671,9 @@
         sessionStorage.setItem(SECURITY_SESSION_KEY, JSON.stringify(user));
         unlockSecurityGate(user);
         showToast(`✅ 歡迎回來，管理員 ${user.name}！身分驗證通過。`);
+        if (typeof fetchUserDataFromCloud === 'function') {
+          fetchUserDataFromCloud(payload.email, false);
+        }
       } else {
         showAuthAlert(`🚫 存取拒絕：帳號 ${email} 未獲授權！\n此系統受最高資安防護，非授權人員無法檢視或使用投資數據。`, 'error');
       }
@@ -5634,6 +5701,9 @@
         sessionStorage.setItem(SECURITY_SESSION_KEY, JSON.stringify(user));
         unlockSecurityGate(user);
         showToast('🔑 管理安全授權碼驗證通過！');
+        if (typeof fetchUserDataFromCloud === 'function') {
+          fetchUserDataFromCloud('main_admin', false);
+        }
       } else {
         showAuthAlert('❌ 安全授權碼錯誤，請重新輸入！', 'error');
       }
@@ -5647,6 +5717,8 @@
         gate.style.display = 'none';
       }
       updateHeaderAuthBadge(user);
+      const d1Acc = document.getElementById('d1CurrentAccount');
+      if (d1Acc && user) d1Acc.textContent = user.email || 'main_admin';
     }
 
     function lockSecurityGate() {
@@ -5787,14 +5859,18 @@
       if (clientId) state.security.googleClientId = clientId;
       if (pin) state.security.masterPin = pin;
       saveSecurityConfig();
+      if (typeof saveUserDataToCloud === 'function') {
+        saveUserDataToCloud(null, false);
+      }
       closeSecurityModal();
       initGoogleAuth();
-      showToast('✅ 資安與管理帳號設定已成功儲存！');
+      showToast('✅ 資安與管理帳號設定已成功儲存並同步至 D1 雲端！');
     }
 
     function saveSecurityConfig() {
       try {
         localStorage.setItem(SECURITY_CONFIG_KEY, JSON.stringify(state.security));
+        if (typeof debouncedSaveToCloud === 'function') debouncedSaveToCloud();
       } catch (e) {}
     }
 
@@ -5805,6 +5881,195 @@
       label.textContent = msg;
       box.classList.remove('hidden');
       setTimeout(() => box.classList.add('hidden'), 3500);
+    }
+
+    // =========================================================================
+    // CLOUDFLARE D1 CLOUD DATABASE BIDIRECTIONAL SYNC ENGINE
+    // =========================================================================
+    function getSyncUserId() {
+      if (state.currentUser && state.currentUser.email && state.currentUser.email.includes('@')) {
+        return state.currentUser.email.toLowerCase().trim();
+      }
+      if (state.security && state.security.authorizedEmails && state.security.authorizedEmails.length > 0) {
+        return state.security.authorizedEmails[0].toLowerCase().trim();
+      }
+      return 'main_admin';
+    }
+
+    function updateCloudSyncBadge(status, timestamp = null) {
+      state.cloudSyncStatus = status;
+      if (timestamp) state.lastCloudSyncTime = timestamp;
+
+      const dot = document.getElementById('cloudSyncStatusDot');
+      const label = document.getElementById('cloudSyncLabel');
+      const viewStatus = document.getElementById('d1StatusText');
+      const viewTime = document.getElementById('d1LastSyncTime');
+
+      const timeStr = state.lastCloudSyncTime ? new Date(state.lastCloudSyncTime).toLocaleTimeString('zh-TW', { hour12: false }) : '尚未同步';
+      if (viewTime) viewTime.textContent = timeStr;
+
+      if (status === 'synced') {
+        if (dot) dot.className = 'w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50';
+        if (label) label.textContent = 'D1 已同步';
+        if (viewStatus) viewStatus.innerHTML = '<span class="text-emerald-400 font-semibold flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-400"></span>D1 雲端連線正常 (強一致性同步)</span>';
+      } else if (status === 'syncing') {
+        if (dot) dot.className = 'w-2 h-2 rounded-full bg-cyan-400 animate-ping';
+        if (label) label.textContent = 'D1 同步中...';
+        if (viewStatus) viewStatus.innerHTML = '<span class="text-cyan-400 font-semibold flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-cyan-400 animate-spin"></span>資料傳輸同步中...</span>';
+      } else if (status === 'unbound') {
+        if (dot) dot.className = 'w-2 h-2 rounded-full bg-amber-400';
+        if (label) label.textContent = 'D1 尚未綁定';
+        if (viewStatus) viewStatus.innerHTML = '<span class="text-amber-400 font-semibold flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-400"></span>未綁定 D1 (使用本機快取)</span>';
+      } else if (status === 'error') {
+        if (dot) dot.className = 'w-2 h-2 rounded-full bg-rose-400';
+        if (label) label.textContent = 'D1 同步失敗';
+        if (viewStatus) viewStatus.innerHTML = '<span class="text-rose-400 font-semibold flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-rose-400"></span>連線異常 (已保存在本地)</span>';
+      }
+    }
+
+    async function fetchUserDataFromCloud(userId = null, silent = false) {
+      const uid = userId || getSyncUserId();
+      updateCloudSyncBadge('syncing');
+
+      try {
+        const resp = await fetch(`/api/user-data?userId=${encodeURIComponent(uid)}`, { cache: 'no-cache' });
+        if (!resp.ok) {
+          updateCloudSyncBadge('error');
+          return;
+        }
+        const res = await resp.json();
+
+        if (res.error === 'D1_NOT_BOUND') {
+          updateCloudSyncBadge('unbound');
+          if (!silent) showToast('⚠️ Cloudflare Pages 尚未綁定 D1 資料庫，目前使用本機儲存模式。');
+          return;
+        }
+
+        if (res.success && res.found && res.data) {
+          const d = res.data;
+          let changed = false;
+
+          // 1. 同步安全設定 (包含公司電腦最需要的更新後 PIN 碼)
+          if (d.security && d.security.masterPin) {
+            state.security = Object.assign({}, DEFAULT_SECURITY_CONFIG, d.security);
+            localStorage.setItem(SECURITY_CONFIG_KEY, JSON.stringify(state.security));
+          }
+
+          // 2. 同步持股倉與鎖單股
+          if (Array.isArray(d.stocks) && d.stocks.length > 0) {
+            state.stocks = d.stocks;
+            state.activeStockId = state.stocks[0].id;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state.stocks));
+            changed = true;
+          }
+
+          // 3. 同步交易日誌
+          if (Array.isArray(d.trades) && d.trades.length > 0) {
+            state.trades = d.trades;
+            localStorage.setItem(TRADES_STORAGE_KEY, JSON.stringify(state.trades));
+            changed = true;
+          }
+
+          // 4. 同步券商費率
+          if (d.broker) {
+            state.brokerSettings = Object.assign({}, DEFAULT_BROKER_SETTINGS, d.broker);
+            localStorage.setItem(BROKER_SETTINGS_KEY, JSON.stringify(state.brokerSettings));
+          }
+
+          updateCloudSyncBadge('synced', d.updatedAt || new Date().toISOString());
+
+          if (changed) {
+            if (state.mainView === 'portfolio') renderPortfolioTable();
+            else if (state.mainView === 'journal') renderJournalView();
+            populateStockSelects();
+          }
+
+          if (!silent) {
+            showToast('☁️ 成功由 Cloudflare D1 載入您最新雲端持股與設定！');
+          }
+        } else if (res.success && !res.found) {
+          // 首次使用雲端：若本機已有自訂股票，自動幫使用者推送到 D1
+          const hasCustomStocks = state.stocks && state.stocks.length > 0;
+          if (hasCustomStocks) {
+            await saveUserDataToCloud(uid, true);
+            updateCloudSyncBadge('synced', new Date().toISOString());
+            if (!silent) showToast('☁️ 已自動將本機現有持股首次備份至 Cloudflare D1！');
+          } else {
+            updateCloudSyncBadge('synced');
+          }
+        }
+      } catch (err) {
+        updateCloudSyncBadge('error');
+      }
+    }
+
+    async function saveUserDataToCloud(userId = null, silent = false) {
+      const uid = userId || getSyncUserId();
+      updateCloudSyncBadge('syncing');
+
+      try {
+        const payload = {
+          userId: uid,
+          stocks: state.stocks,
+          trades: state.trades,
+          broker: state.brokerSettings,
+          security: state.security
+        };
+
+        const resp = await fetch('/api/user-data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json; charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!resp.ok) {
+          updateCloudSyncBadge('error');
+          return;
+        }
+
+        const res = await resp.json();
+        if (res.error === 'D1_NOT_BOUND') {
+          updateCloudSyncBadge('unbound');
+          return;
+        }
+
+        if (res.success) {
+          updateCloudSyncBadge('synced', res.updatedAt || new Date().toISOString());
+          if (!silent) {
+            showToast('☁️ 資料已成功同步至 Cloudflare D1 雲端資料庫！');
+          }
+        } else {
+          updateCloudSyncBadge('error');
+        }
+      } catch (err) {
+        updateCloudSyncBadge('error');
+      }
+    }
+
+    function debouncedSaveToCloud() {
+      if (state.cloudSaveTimer) {
+        clearTimeout(state.cloudSaveTimer);
+      }
+      state.cloudSaveTimer = setTimeout(() => {
+        saveUserDataToCloud(null, true);
+      }, 1500);
+    }
+
+    function manualTriggerCloudSync() {
+      showToast('🔄 正在與 Cloudflare D1 執行雙向同步...');
+      fetchUserDataFromCloud(null, false);
+    }
+
+    async function forceUploadToCloud() {
+      if (confirm('確定要將目前本機畫面上顯示的所有持股與筆記「強制覆蓋上傳」至 Cloudflare D1 雲端嗎？')) {
+        await saveUserDataToCloud(null, false);
+      }
+    }
+
+    async function forceDownloadFromCloud() {
+      if (confirm('確定要從 Cloudflare D1 雲端「下載最新資料」並覆蓋本機目前的內容嗎？')) {
+        await fetchUserDataFromCloud(null, false);
+      }
     }
 
     // =========================================================================
