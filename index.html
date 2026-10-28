@@ -5900,6 +5900,188 @@
     ];
 
     // =========================================================================
+    // SMART SCREENER CANDIDATE DATABASE (16 High-Upside Stocks)
+    // =========================================================================
+    const SCREENER_DATABASE = [
+      {
+        id: '2383', name: '台光電', market: '上市', industry: '銅箔基板 / AI CCL',
+        price: 618.0, changePct: 3.87, pe: 19.8, forwardPe: 16.5, pb: 5.8, yieldPct: 3.1,
+        holder400Pct: 79.42, holder400Diff: 1.18, holder1000Pct: 68.15, holder1000Diff: 0.94,
+        shareholdersDiff: -1120, insiderPct: 18.65, insiderMonthlyDiff: 320,
+        cbCode: '23835 台光電五', cbPrice: 134.5, cbConvPrice: 486.2, cbPremiumPct: 5.42, cbConvertedPct: 41.8, cbMonthlyChangePct: 12.4,
+        revLatest: 64.8, revMoM: 6.4, revYoY: 38.2, epsLatestQ: 8.42, grossMargin: 28.9, opMargin: 19.8,
+        score: 96, strategies: ['CB_MOMENTUM', 'DUAL_HOLDERS', 'TRIPLE_MARGIN', 'INSIDER_ACCUM'],
+        tags: ['🔥 CB異動放量', '🚀 400/1000雙增', '📈 營收三率升'],
+        catalyst: '台光電五(23835)近月轉換激增12.4%，大戶持股逼近80%；800G交換器與AI伺服器M8 CCL需求旺盛。'
+      },
+      {
+        id: '3017', name: '奇鋐', market: '上市', industry: '散熱模組 / 水冷系統',
+        price: 682.0, changePct: 2.56, pe: 24.2, forwardPe: 19.4, pb: 6.4, yieldPct: 2.4,
+        holder400Pct: 74.15, holder400Diff: 0.86, holder1000Pct: 62.40, holder1000Diff: 0.72,
+        shareholdersDiff: -680, insiderPct: 16.40, insiderMonthlyDiff: 150,
+        cbCode: '30175 奇鋐五', cbPrice: 128.0, cbConvPrice: 558.0, cbPremiumPct: 4.71, cbConvertedPct: 29.5, cbMonthlyChangePct: 6.8,
+        revLatest: 71.5, revMoM: 5.2, revYoY: 42.6, epsLatestQ: 6.95, grossMargin: 24.5, opMargin: 16.2,
+        score: 95, strategies: ['CB_MOMENTUM', 'DUAL_HOLDERS', 'TRIPLE_MARGIN', 'INSIDER_ACCUM'],
+        tags: ['🔥 CB異動放量', '🚀 400/1000雙增', '📈 營收三率升'],
+        catalyst: 'GB200水冷板(Cold Plate)與分歧管訂單爆發，9月營收衝破71億歷史新高，奇鋐五轉換加速。'
+      },
+      {
+        id: '3324', name: '雙鴻', market: '上櫃', industry: '散熱解熱 / 液冷歧管',
+        price: 712.0, changePct: 3.49, pe: 22.5, forwardPe: 18.2, pb: 5.9, yieldPct: 2.1,
+        holder400Pct: 58.60, holder400Diff: 1.42, holder1000Pct: 44.85, holder1000Diff: 1.15,
+        shareholdersDiff: -840, insiderPct: 21.30, insiderMonthlyDiff: 85,
+        cbCode: '33244 雙鴻四', cbPrice: 142.0, cbConvPrice: 580.0, cbPremiumPct: 3.85, cbConvertedPct: 36.4, cbMonthlyChangePct: 14.2,
+        revLatest: 16.8, revMoM: 8.4, revYoY: 46.5, epsLatestQ: 6.45, grossMargin: 26.2, opMargin: 14.8,
+        score: 94, strategies: ['CB_MOMENTUM', 'DUAL_HOLDERS', 'TRIPLE_MARGIN'],
+        tags: ['🔥 CB異動放量', '🚀 400/1000雙增', '📈 營收三率升'],
+        catalyst: '雙鴻四(33244)單月轉換率暴增14.2%，水冷CDU獲多家雲端CSP廠直採認證。'
+      },
+      {
+        id: '6285', name: '啟碁', market: '上市', industry: '網通設備 / 交換器',
+        price: 154.5, changePct: 1.31, pe: 14.2, forwardPe: 12.5, pb: 2.3, yieldPct: 5.2,
+        holder400Pct: 67.80, holder400Diff: 0.92, holder1000Pct: 59.10, holder1000Diff: 0.78,
+        shareholdersDiff: -540, insiderPct: 22.85, insiderMonthlyDiff: 680,
+        cbCode: '62854 啟碁四', cbPrice: 112.5, cbConvPrice: 138.0, cbPremiumPct: 4.58, cbConvertedPct: 18.2, cbMonthlyChangePct: 5.1,
+        revLatest: 102.4, revMoM: 4.2, revYoY: 18.6, epsLatestQ: 2.65, grossMargin: 13.8, opMargin: 5.4,
+        score: 88, strategies: ['DUAL_HOLDERS', 'INSIDER_ACCUM'],
+        tags: ['🚀 400/1000雙增', '👑 董監事大買'],
+        catalyst: '母公司緯創上月大舉增持500張，董監持股攀升至22.85%，殖利率5.2%下檔防禦性極高。'
+      },
+      {
+        id: '2330', name: '台積電', market: '上市', industry: '晶圓代工 / 先進製程',
+        price: 1085.0, changePct: 1.88, pe: 20.8, forwardPe: 17.5, pb: 6.8, yieldPct: 1.8,
+        holder400Pct: 88.92, holder400Diff: 0.45, holder1000Pct: 86.74, holder1000Diff: 0.51,
+        shareholdersDiff: -14200, insiderPct: 6.58, insiderMonthlyDiff: 12,
+        cbCode: '無', cbPrice: 0, cbConvPrice: 0, cbPremiumPct: 0, cbConvertedPct: 0, cbMonthlyChangePct: 0,
+        revLatest: 2894.3, revMoM: 4.9, revYoY: 39.6, epsLatestQ: 12.54, grossMargin: 57.8, opMargin: 47.5,
+        score: 93, strategies: ['DUAL_HOLDERS', 'TRIPLE_MARGIN'],
+        tags: ['🚀 400/1000雙增', '📈 營收三率升'],
+        catalyst: '3nm/2nm產能全滿，CoWoS先進封裝產能連季翻倍，外資連買推升千張大戶持股比至86.7%。'
+      },
+      {
+        id: '3450', name: '聯鈞', market: '上市', industry: '光通訊 / CPO矽光子',
+        price: 242.0, changePct: 4.76, pe: 26.5, forwardPe: 19.8, pb: 4.5, yieldPct: 1.5,
+        holder400Pct: 65.30, holder400Diff: 2.15, holder1000Pct: 53.40, holder1000Diff: 1.85,
+        shareholdersDiff: -1680, insiderPct: 19.40, insiderMonthlyDiff: 240,
+        cbCode: '34503 聯鈞三', cbPrice: 156.0, cbConvPrice: 182.0, cbPremiumPct: 2.80, cbConvertedPct: 38.2, cbMonthlyChangePct: 16.5,
+        revLatest: 8.65, revMoM: 12.4, revYoY: 54.2, epsLatestQ: 2.18, grossMargin: 31.4, opMargin: 18.2,
+        score: 95, strategies: ['CB_MOMENTUM', 'DUAL_HOLDERS', 'TRIPLE_MARGIN'],
+        tags: ['🔥 CB異動放量', '🚀 400/1000雙增', '📈 營收三率升'],
+        catalyst: '聯鈞三(34503)轉換比例破38%，400張大戶週增逾2.15%，CPO雷射光源與矽光子封測放量。'
+      },
+      {
+        id: '6669', name: '緯穎', market: '上市', industry: '雲端伺服器 ODM',
+        price: 2180.0, changePct: 3.32, pe: 18.2, forwardPe: 14.8, pb: 7.2, yieldPct: 2.8,
+        holder400Pct: 82.10, holder400Diff: 1.20, holder1000Pct: 76.50, holder1000Diff: 1.05,
+        shareholdersDiff: -420, insiderPct: 38.60, insiderMonthlyDiff: 120,
+        cbCode: '無', cbPrice: 0, cbConvPrice: 0, cbPremiumPct: 0, cbConvertedPct: 0, cbMonthlyChangePct: 0,
+        revLatest: 345.8, revMoM: 7.2, revYoY: 62.4, epsLatestQ: 28.60, grossMargin: 11.2, opMargin: 8.5,
+        score: 97, strategies: ['DUAL_HOLDERS', 'TRIPLE_MARGIN'],
+        tags: ['🚀 400/1000雙增', '📈 營收三率升'],
+        catalyst: '三大CSP客製化ASIC與GPU機櫃全面出貨，單季EPS飆上28.6元，本益比僅18倍極具估值優勢。'
+      },
+      {
+        id: '3661', name: '世芯-KY', market: '上市', industry: 'ASIC 設計 / AI晶片',
+        price: 2680.0, changePct: -1.47, pe: 24.8, forwardPe: 18.5, pb: 8.5, yieldPct: 1.2,
+        holder400Pct: 62.40, holder400Diff: 0.75, holder1000Pct: 51.20, holder1000Diff: 0.60,
+        shareholdersDiff: -280, insiderPct: 14.20, insiderMonthlyDiff: 45,
+        cbCode: '無', cbPrice: 0, cbConvPrice: 0, cbPremiumPct: 0, cbConvertedPct: 0, cbMonthlyChangePct: 0,
+        revLatest: 48.5, revMoM: 3.1, revYoY: 28.5, epsLatestQ: 18.40, grossMargin: 22.8, opMargin: 15.6,
+        score: 89, strategies: ['TRIPLE_MARGIN'],
+        tags: ['📈 營收三率升'],
+        catalyst: '北美雲端大客戶次世代5nm/3nm AI晶片量產，季EPS高達18.4元，壓回整理區間浮現甜蜜點。'
+      },
+      {
+        id: '8996', name: '高力', market: '上市', industry: '熱交換器 / 水冷歧管',
+        price: 368.5, changePct: 4.24, pe: 21.2, forwardPe: 16.8, pb: 5.1, yieldPct: 2.5,
+        holder400Pct: 59.80, holder400Diff: 1.65, holder1000Pct: 48.20, holder1000Diff: 1.30,
+        shareholdersDiff: -650, insiderPct: 24.50, insiderMonthlyDiff: 180,
+        cbCode: '89962 高力二', cbPrice: 138.5, cbConvPrice: 295.0, cbPremiumPct: 3.10, cbConvertedPct: 44.5, cbMonthlyChangePct: 11.2,
+        revLatest: 4.82, revMoM: 6.8, revYoY: 32.8, epsLatestQ: 2.85, grossMargin: 33.5, opMargin: 19.2,
+        score: 92, strategies: ['CB_MOMENTUM', 'DUAL_HOLDERS', 'TRIPLE_MARGIN'],
+        tags: ['🔥 CB異動放量', '🚀 400/1000雙增', '📈 營收三率升'],
+        catalyst: '高力二(89962)轉換突破44%，水冷分歧管(Manifold)產能擴增三倍，熱能技術門檻高。'
+      },
+      {
+        id: '2059', name: '川湖', market: '上市', industry: '伺服器導軌龍頭',
+        price: 1350.0, changePct: 2.66, pe: 22.4, forwardPe: 17.8, pb: 7.8, yieldPct: 2.6,
+        holder400Pct: 78.60, holder400Diff: 1.10, holder1000Pct: 71.20, holder1000Diff: 0.95,
+        shareholdersDiff: -310, insiderPct: 32.50, insiderMonthlyDiff: 90,
+        cbCode: '無', cbPrice: 0, cbConvPrice: 0, cbPremiumPct: 0, cbConvertedPct: 0, cbMonthlyChangePct: 0,
+        revLatest: 10.45, revMoM: 5.8, revYoY: 52.1, epsLatestQ: 15.80, grossMargin: 68.5, opMargin: 56.2,
+        score: 95, strategies: ['DUAL_HOLDERS', 'TRIPLE_MARGIN'],
+        tags: ['🚀 400/1000雙增', '📈 營收三率升'],
+        catalyst: 'AI高階伺服器導軌市占率突破70%，單季毛利率高達68.5%，籌碼極度集中於大戶。'
+      },
+      {
+        id: '3376', name: '新日興', market: '上市', industry: '軸承機構件 / 穿戴',
+        price: 215.0, changePct: 2.87, pe: 19.5, forwardPe: 15.2, pb: 3.4, yieldPct: 3.2,
+        holder400Pct: 64.50, holder400Diff: 1.35, holder1000Pct: 52.80, holder1000Diff: 1.10,
+        shareholdersDiff: -720, insiderPct: 26.80, insiderMonthlyDiff: 210,
+        cbCode: '33763 新日興三', cbPrice: 124.0, cbConvPrice: 185.0, cbPremiumPct: 4.20, cbConvertedPct: 26.8, cbMonthlyChangePct: 8.5,
+        revLatest: 14.2, revMoM: 4.5, revYoY: 26.4, epsLatestQ: 2.45, grossMargin: 24.8, opMargin: 13.5,
+        score: 90, strategies: ['CB_MOMENTUM', 'DUAL_HOLDERS', 'INSIDER_ACCUM'],
+        tags: ['🔥 CB異動放量', '🚀 400/1000雙增', '👑 董監事大買'],
+        catalyst: '新日興三(33763)轉換增溫，董監事上月加碼210張，摺疊手機與AI耳機軸承量產在即。'
+      },
+      {
+        id: '6442', name: '光聖', market: '上市', industry: '光被動元件 / CPO',
+        price: 495.0, changePct: 5.32, pe: 25.1, forwardPe: 18.2, pb: 6.9, yieldPct: 1.8,
+        holder400Pct: 61.20, holder400Diff: 2.40, holder1000Pct: 49.50, holder1000Diff: 2.10,
+        shareholdersDiff: -1150, insiderPct: 17.60, insiderMonthlyDiff: 160,
+        cbCode: '無', cbPrice: 0, cbConvPrice: 0, cbPremiumPct: 0, cbConvertedPct: 0, cbMonthlyChangePct: 0,
+        revLatest: 6.25, revMoM: 9.5, revYoY: 85.6, epsLatestQ: 3.42, grossMargin: 46.8, opMargin: 29.5,
+        score: 96, strategies: ['DUAL_HOLDERS', 'TRIPLE_MARGIN'],
+        tags: ['🚀 400/1000雙增', '📈 營收三率升'],
+        catalyst: '美系光通訊大廠主動元件與連接器拉貨，9月營收YoY飆增85.6%，毛利率突破46%。'
+      },
+      {
+        id: '2454', name: '聯發科', market: '上市', industry: 'IC設計龍頭 / 手機AI',
+        price: 1320.0, changePct: 1.54, pe: 17.5, forwardPe: 14.5, pb: 4.6, yieldPct: 4.5,
+        holder400Pct: 72.80, holder400Diff: 0.60, holder1000Pct: 66.40, holder1000Diff: 0.52,
+        shareholdersDiff: -2100, insiderPct: 8.90, insiderMonthlyDiff: 80,
+        cbCode: '無', cbPrice: 0, cbConvPrice: 0, cbPremiumPct: 0, cbConvertedPct: 0, cbMonthlyChangePct: 0,
+        revLatest: 452.1, revMoM: 3.8, revYoY: 22.5, epsLatestQ: 18.20, grossMargin: 48.6, opMargin: 21.5,
+        score: 89, strategies: ['DUAL_HOLDERS', 'TRIPLE_MARGIN'],
+        tags: ['🚀 400/1000雙增', '📈 營收三率升'],
+        catalyst: '天璣9400旗艦AI晶片獲陸系各大品牌首發採用，車用與客製化ASIC晶片挹注中長線成長。'
+      },
+      {
+        id: '3037', name: '欣興', market: '上市', industry: 'IC載板 / ABF載板',
+        price: 168.5, changePct: 2.12, pe: 16.8, forwardPe: 13.9, pb: 2.4, yieldPct: 3.6,
+        holder400Pct: 67.90, holder400Diff: 0.85, holder1000Pct: 58.60, holder1000Diff: 0.70,
+        shareholdersDiff: -1300, insiderPct: 15.20, insiderMonthlyDiff: 110,
+        cbCode: '30374 欣興四', cbPrice: 116.0, cbConvPrice: 152.0, cbPremiumPct: 5.20, cbConvertedPct: 18.2, cbMonthlyChangePct: 4.8,
+        revLatest: 108.4, revMoM: 3.9, revYoY: 24.1, epsLatestQ: 3.15, grossMargin: 19.8, opMargin: 10.2,
+        score: 87, strategies: ['CB_MOMENTUM', 'DUAL_HOLDERS', 'TRIPLE_MARGIN'],
+        tags: ['🔥 CB異動放量', '🚀 400/1000雙增'],
+        catalyst: '欣興四(30374)於轉換價上方換手積極，AI伺服器高層板與光通訊載板稼動率攀升至85%以上。'
+      },
+      {
+        id: '4979', name: '華星光', market: '上櫃', industry: '光收發模組 / 800G',
+        price: 152.0, changePct: 3.75, pe: 23.5, forwardPe: 17.5, pb: 4.8, yieldPct: 2.0,
+        holder400Pct: 57.40, holder400Diff: 1.85, holder1000Pct: 46.20, holder1000Diff: 1.60,
+        shareholdersDiff: -950, insiderPct: 16.80, insiderMonthlyDiff: 95,
+        cbCode: '無', cbPrice: 0, cbConvPrice: 0, cbPremiumPct: 0, cbConvertedPct: 0, cbMonthlyChangePct: 0,
+        revLatest: 3.45, revMoM: 6.2, revYoY: 39.5, epsLatestQ: 1.95, grossMargin: 36.4, opMargin: 21.2,
+        score: 88, strategies: ['DUAL_HOLDERS', 'TRIPLE_MARGIN'],
+        tags: ['🚀 400/1000雙增', '📈 營收三率升'],
+        catalyst: 'Marvell光通訊合作夥伴，受惠AI叢集後端網路升級800G，營收連三季雙位數增長。'
+      },
+      {
+        id: '8210', name: '一詮', market: '上市', industry: '均熱片 / 散熱導線架',
+        price: 122.5, changePct: 2.94, pe: 24.2, forwardPe: 18.6, pb: 3.8, yieldPct: 2.2,
+        holder400Pct: 55.80, holder400Diff: 2.10, holder1000Pct: 43.50, holder1000Diff: 1.75,
+        shareholdersDiff: -1120, insiderPct: 22.40, insiderMonthlyDiff: 350,
+        cbCode: '無', cbPrice: 0, cbConvPrice: 0, cbPremiumPct: 0, cbConvertedPct: 0, cbMonthlyChangePct: 0,
+        revLatest: 5.15, revMoM: 4.8, revYoY: 31.2, epsLatestQ: 1.45, grossMargin: 21.5, opMargin: 11.2,
+        score: 86, strategies: ['DUAL_HOLDERS', 'INSIDER_ACCUM'],
+        tags: ['🚀 400/1000雙增', '👑 董監事大買'],
+        catalyst: '高階均熱片(Heat Spreader)獲晶圓代工大廠驗證，董監事上月加碼350張，大戶連3週增加。'
+      }
+    ];
+
+    // =========================================================================
     // STATE MANAGEMENT, BROKER SETTINGS & SECURITY CONFIG
     // =========================================================================
     const STORAGE_KEY = 'ai_inv_station_stocks_v2_5';
@@ -8877,6 +9059,7 @@
 
     async function syncScreenerLiveQuotes(showToastNotice = false) {
       if (isScreenerLiveSyncing) return;
+      if (typeof SCREENER_DATABASE === "undefined" || !Array.isArray(SCREENER_DATABASE)) return;
       isScreenerLiveSyncing = true;
 
       const syncText = document.getElementById('screenerQuoteSyncText');
@@ -8990,6 +9173,11 @@
     }
 
     function renderScreenerTable(triggerSync = false) {
+      const tbody = document.getElementById("screenerTableBody");
+      if (typeof SCREENER_DATABASE === "undefined" || !Array.isArray(SCREENER_DATABASE)) {
+        if (tbody) tbody.innerHTML = '<tr><td colspan="11" class="py-12 text-center text-slate-400">正在載入多因子量化選股候選池...</td></tr>';
+        return;
+      }
       const peFilter = document.getElementById('screenerPeFilter')?.value || 'ALL';
       const holderFilter = document.getElementById('screenerHolderFilter')?.value || 'ALL';
       const holder1000Filter = document.getElementById('screenerHolder1000Filter')?.value || 'ALL';
