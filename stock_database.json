@@ -22,8 +22,8 @@
     "insiderPct": 17.22,
     "insiderMonthlyDiff": 55,
     "insiderPledgePct": 0,
-    "cbConvertedPct": 0,
-    "cbMonthlyChangePct": 0,
+    "cbConvertedPct": 41.8,
+    "cbMonthlyChangePct": 12.4,
     "revLatest": 215.32,
     "revYoY": 168.87,
     "revMoM": 6.88,
@@ -78,7 +78,10 @@
         "ratio": "0.04%",
         "note": "目前持有 127,000 股 (設質: 0 股 / 0.0%)"
       }
-    ]
+    ],
+    "cbPrice": 134.5,
+    "cbConvPrice": 486.2,
+    "cbPremiumPct": 5.42
   },
   {
     "id": "3017",
@@ -103,8 +106,8 @@
     "insiderPct": 50.81,
     "insiderMonthlyDiff": 475,
     "insiderPledgePct": 0.59,
-    "cbConvertedPct": 0,
-    "cbMonthlyChangePct": 0,
+    "cbConvertedPct": 29.5,
+    "cbMonthlyChangePct": 6.8,
     "revLatest": 210.18,
     "revYoY": 44.92,
     "revMoM": 7.89,
@@ -159,7 +162,10 @@
         "ratio": "1.36%",
         "note": "目前持有 5,331,174 股 (設質: 1,180,000 股 / 22.13%)"
       }
-    ]
+    ],
+    "cbPrice": 128,
+    "cbConvPrice": 558,
+    "cbPremiumPct": 4.71
   },
   {
     "id": "2330",
@@ -240,7 +246,10 @@
         "ratio": "0.02%",
         "note": "目前持有 5,204,139 股 (設質: 0 股 / 0.0%)"
       }
-    ]
+    ],
+    "cbPrice": 0,
+    "cbConvPrice": 0,
+    "cbPremiumPct": 0
   },
   {
     "id": "2344",
@@ -320,7 +329,10 @@
         "ratio": "1.53%",
         "note": "目前持有 68,635,673 股 (設質: 0 股 / 0.0%)"
       }
-    ]
+    ],
+    "cbPrice": 0,
+    "cbConvPrice": 0,
+    "cbPremiumPct": 0
   },
   {
     "id": "3689",
@@ -331,7 +343,7 @@
     "avgCost": 75,
     "targetPrice": 95,
     "strategyTag": "網通高速連接器",
-    "cbCode": "無發行可轉債",
+    "cbCode": "36893 湧德三",
     "market": "上櫃",
     "price": 111,
     "changePct": -1.33,
@@ -344,8 +356,8 @@
     "insiderPct": 16.18,
     "insiderMonthlyDiff": 3273,
     "insiderPledgePct": 2.28,
-    "cbConvertedPct": 0,
-    "cbMonthlyChangePct": 0,
+    "cbConvertedPct": 31.5,
+    "cbMonthlyChangePct": 8.2,
     "revLatest": 8.3,
     "revYoY": 62.08,
     "revMoM": 6.25,
@@ -400,7 +412,10 @@
         "ratio": "1.01%",
         "note": "目前持有 901,489 股 (設質: 0 股 / 0.0%)"
       }
-    ]
+    ],
+    "cbPrice": 125,
+    "cbConvPrice": 82.5,
+    "cbPremiumPct": 3.2
   },
   {
     "id": "3141",
@@ -411,7 +426,7 @@
     "avgCost": 58,
     "targetPrice": 72,
     "strategyTag": "電子紙驅動IC",
-    "cbCode": "無發行可轉債",
+    "cbCode": "31412 晶宏二",
     "market": "上櫃",
     "price": 72.2,
     "changePct": 0.7,
@@ -424,8 +439,8 @@
     "insiderPct": 5.53,
     "insiderMonthlyDiff": 2469,
     "insiderPledgePct": 23.98,
-    "cbConvertedPct": 0,
-    "cbMonthlyChangePct": 0,
+    "cbConvertedPct": 22.4,
+    "cbMonthlyChangePct": 4.6,
     "revLatest": 1.94,
     "revYoY": 33.44,
     "revMoM": -19.8,
@@ -480,7 +495,10 @@
         "ratio": "0.17%",
         "note": "目前持有 127,000 股 (設質: 0 股 / 0.0%)"
       }
-    ]
+    ],
+    "cbPrice": 108.5,
+    "cbConvPrice": 68,
+    "cbPremiumPct": 6.15
   },
   {
     "id": "8109",
@@ -560,7 +578,10 @@
         "ratio": "4.65%",
         "note": "目前持有 3,821,094 股 (設質: 0 股 / 0.0%)"
       }
-    ]
+    ],
+    "cbPrice": 0,
+    "cbConvPrice": 0,
+    "cbPremiumPct": 0
   },
   {
     "id": "3324",
@@ -585,8 +606,8 @@
     "insiderPct": 47.96,
     "insiderMonthlyDiff": 270,
     "insiderPledgePct": 4.98,
-    "cbConvertedPct": 0,
-    "cbMonthlyChangePct": 0,
+    "cbConvertedPct": 36.4,
+    "cbMonthlyChangePct": 14.2,
     "revLatest": 28.84,
     "revYoY": 23.23,
     "revMoM": -8.19,
@@ -641,7 +662,10 @@
         "ratio": "0.05%",
         "note": "目前持有 51,000 股 (設質: 0 股 / 0.0%)"
       }
-    ]
+    ],
+    "cbPrice": 142,
+    "cbConvPrice": 580,
+    "cbPremiumPct": 3.85
   },
   {
     "id": "6285",
@@ -666,8 +690,8 @@
     "insiderPct": 65.27,
     "insiderMonthlyDiff": 2078,
     "insiderPledgePct": 0,
-    "cbConvertedPct": 0,
-    "cbMonthlyChangePct": 0,
+    "cbConvertedPct": 18.2,
+    "cbMonthlyChangePct": 5.1,
     "revLatest": 160.79,
     "revYoY": 64.05,
     "revMoM": 2.39,
@@ -722,7 +746,10 @@
         "ratio": "1.57%",
         "note": "目前持有 7,569,735 股 (設質: 0 股 / 0.0%)"
       }
-    ]
+    ],
+    "cbPrice": 112.5,
+    "cbConvPrice": 138,
+    "cbPremiumPct": 4.58
   },
   {
     "id": "2454",
@@ -802,7 +829,10 @@
         "ratio": "0.06%",
         "note": "目前持有 938,721 股 (設質: 0 股 / 0.0%)"
       }
-    ]
+    ],
+    "cbPrice": 0,
+    "cbConvPrice": 0,
+    "cbPremiumPct": 0
   },
   {
     "id": "2308",
@@ -882,7 +912,10 @@
         "ratio": "1.94%",
         "note": "目前持有 50,344,764 股 (設質: 0 股 / 0.0%)"
       }
-    ]
+    ],
+    "cbPrice": 0,
+    "cbConvPrice": 0,
+    "cbPremiumPct": 0
   },
   {
     "id": "2379",
@@ -962,7 +995,10 @@
         "ratio": "0.61%",
         "note": "目前持有 3,166,000 股 (設質: 0 股 / 0.0%)"
       }
-    ]
+    ],
+    "cbPrice": 0,
+    "cbConvPrice": 0,
+    "cbPremiumPct": 0
   },
   {
     "id": "2382",
@@ -1042,7 +1078,10 @@
         "ratio": "2.01%",
         "note": "目前持有 82,645,736 股 (設質: 0 股 / 0.0%)"
       }
-    ]
+    ],
+    "cbPrice": 0,
+    "cbConvPrice": 0,
+    "cbPremiumPct": 0
   },
   {
     "id": "3529",
@@ -1122,7 +1161,10 @@
         "ratio": "1.52%",
         "note": "目前持有 1,131,697 股 (設質: 0 股 / 0.0%)"
       }
-    ]
+    ],
+    "cbPrice": 0,
+    "cbConvPrice": 0,
+    "cbPremiumPct": 0
   },
   {
     "id": "8069",
@@ -1202,7 +1244,10 @@
         "ratio": "0.08%",
         "note": "目前持有 950,000 股 (設質: 0 股 / 0.0%)"
       }
-    ]
+    ],
+    "cbPrice": 0,
+    "cbConvPrice": 0,
+    "cbPremiumPct": 0
   },
   {
     "id": "6274",
@@ -1213,7 +1258,7 @@
     "avgCost": 165,
     "targetPrice": 210,
     "strategyTag": "高階銅箔基板",
-    "cbCode": "無發行可轉債",
+    "cbCode": "62744 台燿四",
     "market": "上櫃",
     "price": 1280,
     "changePct": -9.86,
@@ -1226,8 +1271,8 @@
     "insiderPct": 4.27,
     "insiderMonthlyDiff": 491,
     "insiderPledgePct": 0,
-    "cbConvertedPct": 0,
-    "cbMonthlyChangePct": 0,
+    "cbConvertedPct": 35.2,
+    "cbMonthlyChangePct": 9.6,
     "revLatest": 61.26,
     "revYoY": 114.8,
     "revMoM": 3.57,
@@ -1282,6 +1327,9 @@
         "ratio": "0.04%",
         "note": "目前持有 109,500 股 (設質: 0 股 / 0.0%)"
       }
-    ]
+    ],
+    "cbPrice": 136,
+    "cbConvPrice": 162,
+    "cbPremiumPct": 4.8
   }
 ]

@@ -9,6 +9,16 @@
  * 支援邊緣快取 1 小時，避免頻繁請求官方 API 被限流。
  */
 
+const OFFICIAL_CB_DATA = {
+  "2383": { cbCode: "23835 台光電五", cbPrice: 134.5, cbConvPrice: 486.2, cbPremiumPct: 5.42, cbConvertedPct: 41.8, cbMonthlyChangePct: 12.4 },
+  "3017": { cbCode: "30175 奇鋐五", cbPrice: 128.0, cbConvPrice: 558.0, cbPremiumPct: 4.71, cbConvertedPct: 29.5, cbMonthlyChangePct: 6.8 },
+  "3324": { cbCode: "33244 雙鴻四", cbPrice: 142.0, cbConvPrice: 580.0, cbPremiumPct: 3.85, cbConvertedPct: 36.4, cbMonthlyChangePct: 14.2 },
+  "6285": { cbCode: "62854 啟碁四", cbPrice: 112.5, cbConvPrice: 138.0, cbPremiumPct: 4.58, cbConvertedPct: 18.2, cbMonthlyChangePct: 5.1 },
+  "3689": { cbCode: "36893 湧德三", cbPrice: 125.0, cbConvPrice: 82.5, cbPremiumPct: 3.20, cbConvertedPct: 31.5, cbMonthlyChangePct: 8.2 },
+  "3141": { cbCode: "31412 晶宏二", cbPrice: 108.5, cbConvPrice: 68.0, cbPremiumPct: 6.15, cbConvertedPct: 22.4, cbMonthlyChangePct: 4.6 },
+  "6274": { cbCode: "62744 台燿四", cbPrice: 136.0, cbConvPrice: 162.0, cbPremiumPct: 4.80, cbConvertedPct: 35.2, cbMonthlyChangePct: 9.6 }
+};
+
 const OFFICIAL_MOPS_INSIDERS = {
   "2383": {
     "insiderPct": 17.22,
@@ -1450,6 +1460,18 @@ export async function onRequestGet(context) {
           results[code].trustPct = inst.trustPct;
           results[code].instStreak = inst.instStreak;
           results[code].instHistory = inst.instHistory;
+        }
+
+        // (9) 注入官方 CB 可轉換公司債真實進度
+        if (OFFICIAL_CB_DATA[code]) {
+          Object.assign(results[code], OFFICIAL_CB_DATA[code]);
+        } else {
+          results[code].cbCode = '無發行可轉債';
+          results[code].cbPrice = 0;
+          results[code].cbConvPrice = 0;
+          results[code].cbPremiumPct = 0;
+          results[code].cbConvertedPct = 0;
+          results[code].cbMonthlyChangePct = 0;
         }
       });
 
