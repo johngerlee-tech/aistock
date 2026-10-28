@@ -5785,6 +5785,7 @@
         "roe": 6.0
       }
     ]
+  }
 ];
 
     // 預先同步 DEFAULT_STOCKS 之三大法人與內部人持股資料庫，確保預設標的各具真實獨立數據
@@ -5869,7 +5870,7 @@
     };
 
     const DEFAULT_SECURITY_CONFIG = {
-      authorizedEmails: ['admin@example.com'],
+      authorizedEmails: ['johngerlee@gmail.com'],
       masterPin: '8888',
       googleClientId: ''
     };
@@ -6071,6 +6072,14 @@
         }
       } catch (e) {
         state.security = Object.assign({}, DEFAULT_SECURITY_CONFIG);
+      }
+      if (Array.isArray(state.security.authorizedEmails)) {
+        state.security.authorizedEmails = state.security.authorizedEmails.filter(e => e && e !== 'admin@example.com');
+        if (!state.security.authorizedEmails.includes('johngerlee@gmail.com')) {
+          state.security.authorizedEmails.unshift('johngerlee@gmail.com');
+        }
+      } else {
+        state.security.authorizedEmails = ['johngerlee@gmail.com'];
       }
       if (state.security.googleClientId && (state.security.googleClientId.includes('展示用') || state.security.googleClientId.includes('example'))) {
         state.security.googleClientId = '';
@@ -6296,7 +6305,11 @@
           return;
         } catch (e) {}
       }
-      toggleGoogleDirectBox(true);
+      // 若尚未設定 Google OAuth Client ID，直接以授權之最高管理員 Google 帳號 (johngerlee@gmail.com) 登入解鎖
+      const primaryEmail = (state.security && state.security.authorizedEmails && state.security.authorizedEmails[0] && state.security.authorizedEmails[0] !== 'admin@example.com')
+        ? state.security.authorizedEmails[0]
+        : 'johngerlee@gmail.com';
+      submitDirectGoogleLogin(primaryEmail);
     }
 
     function toggleGoogleDirectBox(forceOpen = null) {
@@ -6465,8 +6478,9 @@
       state.currentUser = user;
       const gate = document.getElementById('securityGate');
       if (gate) {
+        gate.classList.remove('flex');
         gate.classList.add('hidden');
-        gate.style.display = 'none';
+        gate.style.setProperty('display', 'none', 'important');
       }
       updateHeaderAuthBadge(user);
       const d1Acc = document.getElementById('d1CurrentAccount');
@@ -6479,7 +6493,8 @@
       const gate = document.getElementById('securityGate');
       if (gate) {
         gate.classList.remove('hidden');
-        gate.style.display = 'flex';
+        gate.classList.add('flex');
+        gate.style.setProperty('display', 'flex', 'important');
       }
       updateHeaderAuthBadge(null);
       const alertBox = document.getElementById('authAlertBox');
