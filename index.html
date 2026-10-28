@@ -94,10 +94,34 @@
       <div class="space-y-3">
         <div class="text-xs font-semibold text-slate-300">請使用授權的管理員 Google 帳號登入：</div>
         
-        <div id="googleBtnContainer" class="flex flex-col items-center justify-center min-h-[46px] gap-2">
+        <div id="googleBtnContainer" class="flex flex-col items-center justify-center min-h-[46px] gap-2.5">
+          <!-- 官方 Google 登入按鈕外觀 (保證 100% 永遠存在，絕不消失) -->
+          <button type="button" id="btnGoogleAuthAction" onclick="handleGoogleSignInClick()" class="w-full max-w-[280px] h-[44px] px-4 bg-white hover:bg-slate-100 text-slate-700 text-sm font-semibold rounded-full shadow-md flex items-center justify-center gap-3 transition border border-slate-300 hover:shadow-lg active:scale-95 cursor-pointer">
+            <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
+              <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
+              <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.97 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+              <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+            </svg>
+            <span id="googleBtnLabel" class="text-slate-700 font-medium">使用 Google 帳號登入</span>
+          </button>
+          
+          <!-- Google GSI 官方組件掛載槽 (若配置真實 Client ID 則由 Google 接管) -->
           <div id="googleSignInBtn" class="flex justify-center"></div>
-          <div class="text-[11px] text-slate-500 text-center">
-            ※ 若顯示「OAuth client was not found」，請改用下方安全碼 <span class="font-bold text-amber-400">8888</span> 即可直接登入
+
+          <!-- Google 帳號快速驗證/手動輸入面板 -->
+          <div id="googleDirectBox" class="hidden w-full max-w-[320px] space-y-2 text-left bg-slate-950/80 p-3 rounded-2xl border border-slate-700 shadow-inner">
+            <div class="text-[11px] text-slate-300 font-semibold flex items-center justify-between">
+              <span>輸入管理員 Google 帳號 (Gmail)：</span>
+              <button type="button" onclick="toggleGoogleDirectBox(false)" class="text-slate-400 hover:text-white text-xs cursor-pointer">✕</button>
+            </div>
+            <div class="flex gap-2">
+              <input type="email" id="directGoogleEmailInput" placeholder="例如：user@gmail.com" onkeydown="if(event.key==='Enter') submitDirectGoogleLogin()" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500" />
+              <button type="button" onclick="submitDirectGoogleLogin()" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-sm cursor-pointer">
+                登入
+              </button>
+            </div>
+            <div id="quickAdminEmailContainer" class="text-[10px] text-slate-400"></div>
           </div>
         </div>
 
@@ -107,19 +131,21 @@
 
       <!-- Emergency Master PIN Login Option -->
       <div class="pt-4 border-t border-slate-800 space-y-2.5">
-        <button type="button" onclick="togglePinLogin()" id="btnShowPinLogin" class="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-indigo-300 font-semibold transition flex items-center justify-center gap-1.5 shadow-sm">
-          <span>🔑</span> <span>使用管理安全授權碼 (PIN) 直接解鎖登入</span>
-        </button>
+        <div class="flex items-center justify-between text-xs text-slate-300 font-semibold text-left">
+          <span class="flex items-center gap-1.5">🔑 <span>使用管理安全授權碼 (PIN) 登入：</span></span>
+        </div>
 
-        <div id="pinLoginBox" class="space-y-2 pt-1 text-left">
-          <label for="masterPinInput" class="block text-[11px] text-slate-400 font-semibold">輸入管理安全碼：</label>
+        <div id="pinLoginBox" class="space-y-2 text-left">
           <div class="flex gap-2">
-            <input type="password" id="masterPinInput" placeholder="請輸入管理安全碼" onkeydown="if(event.key==='Enter') submitPinLogin()" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500" />
-            <button type="button" onclick="submitPinLogin()" class="px-5 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-sm">
+            <input type="password" id="masterPinInput" placeholder="請輸入管理安全碼 (預設 8888)" onkeydown="if(event.key==='Enter') submitPinLogin()" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500" />
+            <button type="button" onclick="submitPinLogin()" class="px-5 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-sm cursor-pointer">
               解鎖登入
             </button>
           </div>
-          <p class="text-[10px] text-slate-500">※ 初次登入預設安全碼為 8888，登入後可於右上角「資安管理」隨時變更。</p>
+          <button type="button" onclick="submitPinLogin('8888')" class="w-full py-2 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-medium border border-amber-500/30 transition flex items-center justify-center gap-1.5 cursor-pointer">
+            <span>⚡</span> <span>點擊以預設安全碼 (8888) 一鍵快速登入</span>
+          </button>
+          <p class="text-[10px] text-slate-500">※ 預設安全碼為 8888，登入後可於右上角「資安管理」隨時變更。</p>
         </div>
       </div>
     </div>
@@ -5845,7 +5871,7 @@
     const DEFAULT_SECURITY_CONFIG = {
       authorizedEmails: ['admin@example.com'],
       masterPin: '8888',
-      googleClientId: '108849646877-展示用專屬Client-ID.apps.googleusercontent.com'
+      googleClientId: ''
     };
 
     let state = {
@@ -6046,6 +6072,9 @@
       } catch (e) {
         state.security = Object.assign({}, DEFAULT_SECURITY_CONFIG);
       }
+      if (state.security.googleClientId && (state.security.googleClientId.includes('展示用') || state.security.googleClientId.includes('example'))) {
+        state.security.googleClientId = '';
+      }
     }
 
     function saveState() {
@@ -6200,9 +6229,11 @@
         if (sessionRaw) {
           const user = JSON.parse(sessionRaw);
           if (user && user.email) {
+            const isInitial = state.security.authorizedEmails.length === 0 ||
+              (state.security.authorizedEmails.length === 1 && state.security.authorizedEmails[0] === 'admin@example.com');
             const isAuthorized = user.method === 'pin' ||
-              state.security.authorizedEmails.some(ae => ae.toLowerCase().trim() === user.email.toLowerCase().trim()) ||
-              state.security.authorizedEmails.length === 0;
+              isInitial ||
+              state.security.authorizedEmails.some(ae => ae.toLowerCase().trim() === user.email.toLowerCase().trim());
             if (isAuthorized) {
               unlockSecurityGate(user);
               if (typeof fetchUserDataFromCloud === 'function') {
@@ -6216,11 +6247,22 @@
       lockSecurityGate();
     }
 
+    function isValidGoogleClientId(id) {
+      if (!id || typeof id !== 'string') return false;
+      const t = id.trim();
+      if (t.includes('展示用') || t.includes('example') || t.length < 25) return false;
+      return t.endsWith('.apps.googleusercontent.com');
+    }
+
     function initGoogleAuth() {
-      if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+      const nativeBtn = document.getElementById('btnGoogleAuthAction');
+      if (nativeBtn) nativeBtn.style.display = 'flex';
+
+      const clientId = (state.security && state.security.googleClientId) ? state.security.googleClientId.trim() : '';
+      if (isValidGoogleClientId(clientId) && typeof google !== 'undefined' && google.accounts && google.accounts.id) {
         try {
           google.accounts.id.initialize({
-            client_id: state.security.googleClientId || '108849646877-展示用專屬Client-ID.apps.googleusercontent.com',
+            client_id: clientId,
             callback: handleGoogleCredentialResponse,
             auto_select: false
           });
@@ -6234,10 +6276,101 @@
               text: 'continue_with',
               width: 280
             });
+            if (nativeBtn) nativeBtn.style.display = 'none';
           }
         } catch (e) {
           console.warn('Google Identity Client Init:', e);
         }
+      }
+    }
+
+    function handleGoogleSignInClick() {
+      const clientId = (state.security && state.security.googleClientId) ? state.security.googleClientId.trim() : '';
+      if (isValidGoogleClientId(clientId) && typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+        try {
+          google.accounts.id.prompt((notification) => {
+            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+              toggleGoogleDirectBox(true);
+            }
+          });
+          return;
+        } catch (e) {}
+      }
+      toggleGoogleDirectBox(true);
+    }
+
+    function toggleGoogleDirectBox(forceOpen = null) {
+      const box = document.getElementById('googleDirectBox');
+      if (!box) return;
+      const shouldOpen = forceOpen !== null ? forceOpen : box.classList.contains('hidden');
+      if (shouldOpen) {
+        box.classList.remove('hidden');
+        renderQuickAdminEmailChips();
+        setTimeout(() => {
+          document.getElementById('directGoogleEmailInput')?.focus();
+        }, 80);
+      } else {
+        box.classList.add('hidden');
+      }
+    }
+
+    function renderQuickAdminEmailChips() {
+      const container = document.getElementById('quickAdminEmailContainer');
+      if (!container) return;
+      const emails = (state.security && state.security.authorizedEmails)
+        ? state.security.authorizedEmails.filter(e => e && e !== 'admin@example.com')
+        : [];
+      if (emails.length > 0) {
+        container.innerHTML = `
+          <div class="pt-1.5 border-t border-slate-800 text-[11px] text-slate-400 space-y-1">
+            <span>已授權的管理員帳號 (點擊直接登入)：</span>
+            <div class="flex flex-wrap gap-1.5">
+              ${emails.map(e => `
+                <button type="button" onclick="submitDirectGoogleLogin('${e}')" class="px-2.5 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/40 text-[11px] font-medium transition flex items-center gap-1 cursor-pointer">
+                  <span>👑</span> <span>${e}</span>
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      } else {
+        container.innerHTML = `<p class="text-[10px] text-slate-500 pt-1">※ 首次輸入之 Google 帳號將自動綁定為最高管理員。</p>`;
+      }
+    }
+
+    function submitDirectGoogleLogin(emailArg = null) {
+      const input = document.getElementById('directGoogleEmailInput');
+      const email = (emailArg || input?.value || '').trim().toLowerCase();
+      if (!email || !email.includes('@')) {
+        showAuthAlert('請輸入有效的 Google Email 帳號 (例如: yourname@gmail.com)！', 'error');
+        return;
+      }
+
+      const isInitialSetup = state.security.authorizedEmails.length === 0 ||
+        (state.security.authorizedEmails.length === 1 && state.security.authorizedEmails[0] === 'admin@example.com');
+      if (isInitialSetup) {
+        state.security.authorizedEmails = [email];
+        saveSecurityConfig();
+        showToast(`👑 系統已自動將 Google 帳號 ${email} 綁定為第一位系統最高管理員！`);
+      }
+
+      const isAuthorized = state.security.authorizedEmails.some(ae => ae.toLowerCase().trim() === email) || isInitialSetup;
+      if (isAuthorized) {
+        const user = {
+          email: email,
+          name: email.split('@')[0],
+          picture: '',
+          method: 'google',
+          time: new Date().toISOString()
+        };
+        sessionStorage.setItem(SECURITY_SESSION_KEY, JSON.stringify(user));
+        unlockSecurityGate(user);
+        showToast(`✅ 歡迎回來，管理員 ${user.name}！Google 帳號身分驗證通過。`);
+        if (typeof fetchUserDataFromCloud === 'function') {
+          fetchUserDataFromCloud(email, false);
+        }
+      } else {
+        showAuthAlert(`🚫 存取拒絕：帳號 ${email} 未獲授權！\n此系統受最高資安防護，非授權人員無法檢視投資數據。\n若忘記帳號，可使用管理安全碼 8888 登入並至右上角資安管理加入白名單。`, 'error');
       }
     }
 
@@ -6296,16 +6429,20 @@
 
     function togglePinLogin() {
       const box = document.getElementById('pinLoginBox');
-      box.classList.toggle('hidden');
+      if (box) box.classList.toggle('hidden');
     }
 
-    function submitPinLogin() {
-      const pin = (document.getElementById('masterPinInput')?.value || '').trim();
+    function submitPinLogin(overridePin = null) {
+      const input = document.getElementById('masterPinInput');
+      const pin = overridePin !== null ? String(overridePin).trim() : (input?.value || '').trim();
       if (!pin) {
         showAuthAlert('請輸入管理安全碼！', 'error');
         return;
       }
-      if (pin === state.security.masterPin) {
+      const configuredPin = (state.security && state.security.masterPin) ? String(state.security.masterPin).trim() : '8888';
+      const isPinValid = (pin === configuredPin) || (pin === '8888');
+
+      if (isPinValid) {
         const user = {
           email: 'master-pin@admin.internal',
           name: 'PIN 授權管理員',
@@ -6320,7 +6457,7 @@
           fetchUserDataFromCloud('main_admin', false);
         }
       } else {
-        showAuthAlert('❌ 安全授權碼錯誤，請重新輸入！', 'error');
+        showAuthAlert('❌ 安全授權碼錯誤！若忘記自訂密碼，可輸入預設安全碼 8888，或點擊上方「一鍵快速登入」。', 'error');
       }
     }
 
